@@ -105,6 +105,19 @@ export default function Schedules() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const { error } = await supabase.from('schedules').delete().eq('id', deleteId);
+      if (error) throw error;
+      toast({ title: 'Agenda removida!' });
+      setDeleteId(null);
+      load();
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    }
+  };
+
   const openEdit = (s: Schedule) => {
     setEditing(s);
     setForm({
