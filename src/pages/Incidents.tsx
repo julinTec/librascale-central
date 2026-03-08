@@ -102,6 +102,19 @@ export default function Incidents() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const { error } = await supabase.from('incidents').delete().eq('id', deleteId);
+      if (error) throw error;
+      toast({ title: 'Ocorrência removida!' });
+      setDeleteId(null);
+      load();
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    }
+  };
+
   const filtered = items.filter(i => {
     if (filterType !== 'all' && i.incident_type !== filterType) return false;
     if (search && !i.description.toLowerCase().includes(search.toLowerCase())) return false;
