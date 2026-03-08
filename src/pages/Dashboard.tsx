@@ -1,32 +1,72 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Clock, AlertTriangle, CheckCircle, XCircle, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarDays, Clock, AlertTriangle, CheckCircle, XCircle, Users, CalendarIcon } from 'lucide-react';
 import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS } from '@/lib/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { format, lastDayOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const PIE_COLORS = ['hsl(152,45%,28%)', 'hsl(38,92%,50%)', 'hsl(0,72%,51%)', 'hsl(210,80%,52%)', 'hsl(152,20%,60%)', 'hsl(280,60%,50%)'];
 
+const MONTHS = [
+  { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' }, { value: '3', label: 'Março' },
+  { value: '4', label: 'Abril' }, { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
+  { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Setembro' },
+  { value: '10', label: 'Outubro' }, { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
+];
+
+type FilterMode = 'date' | 'month' | 'year';
+
 export default function Dashboard() {
+  const now = new Date();
+  const [filterMode, setFilterMode] = useState<FilterMode>('month');
+  const [selectedDate, setSelectedDate] = useState<Date>(now);
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
   const [stats, setStats] = useState({ planned: 0, realized: 0, billable: 0, activities: 0, cancellations: 0, delays: 0 });
   const [todaySchedules, setTodaySchedules] = useState<any[]>([]);
   const [statusData, setStatusData] = useState<any[]>([]);
   const [clientHours, setClientHours] = useState<any[]>([]);
 
+  const years = useMemo(() => {
+    const y = now.getFullYear();
+    return Array.from({ length: 5 }, (_, i) => y - 2 + i);
+  }, []);
+
+  const { periodStart, periodEnd } = useMemo(() => {
+    if (filterMode === 'date') {
+      const d = format(selectedDate, 'yyyy-MM-dd');
+      return { periodStart: d, periodEnd: d };
+    }
+    if (filterMode === 'year') {
+      return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
+    }
+    // month
+    const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+    const end = format(lastDayOfMonth(new Date(selectedYear, selectedMonth - 1)), 'yyyy-MM-dd');
+    return { periodStart: start, periodEnd: end };
+  }, [filterMode, selectedDate, selectedMonth, selectedYear]);
+
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [periodStart, periodEnd]);
 
   const loadDashboard = async () => {
     const today = new Date().toISOString().split('T')[0];
-    const monthStart = today.slice(0, 8) + '01';
 
     const [schedulesRes, todayRes, execRes, incidentsRes] = await Promise.all([
-      supabase.from('schedules').select('status, planned_duration_minutes, client_id, clients(name)').gte('activity_date', monthStart),
+      supabase.from('schedules').select('status, planned_duration_minutes, client_id, clients(name)').gte('activity_date', periodStart).lte('activity_date', periodEnd),
       supabase.from('schedules').select('*, clients(name), interpreters(full_name)').eq('activity_date', today).order('planned_start'),
-      supabase.from('execution_logs').select('billable_hours, worked_hours, schedule_id, schedules!inner(activity_date)').gte('schedules.activity_date', monthStart),
-      supabase.from('incidents').select('incident_type').gte('created_at', monthStart),
+      supabase.from('execution_logs').select('billable_hours, worked_hours, schedule_id, schedules!inner(activity_date)').gte('schedules.activity_date', periodStart).lte('schedules.activity_date', periodEnd),
+      supabase.from('incidents').select('incident_type').gte('created_at', periodStart).lte('created_at', periodEnd + 'T23:59:59'),
     ]);
 
     const schedules = schedulesRes.data || [];
@@ -42,12 +82,10 @@ export default function Dashboard() {
     setStats({ planned: Math.round(plannedMins / 60 * 10) / 10, realized: realizedH, billable: billableH, activities: schedules.length, cancellations, delays });
     setTodaySchedules(todayRes.data || []);
 
-    // Status distribution
     const statusCounts: Record<string, number> = {};
     schedules.forEach(s => { statusCounts[s.status] = (statusCounts[s.status] || 0) + 1; });
     setStatusData(Object.entries(statusCounts).map(([name, value]) => ({ name: SCHEDULE_STATUS_LABELS[name] || name, value })));
 
-    // Hours by client
     const clientMap: Record<string, number> = {};
     schedules.forEach(s => {
       const cName = (s.clients as any)?.name || 'N/A';
@@ -65,9 +103,84 @@ export default function Dashboard() {
     { label: 'Atrasos', value: stats.delays, icon: AlertTriangle, color: 'text-warning' },
   ];
 
+  const modeButtons: { mode: FilterMode; label: string }[] = [
+    { mode: 'date', label: 'Data' },
+    { mode: 'month', label: 'Mês' },
+    { mode: 'year', label: 'Ano' },
+  ];
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-md border border-input overflow-hidden">
+          {modeButtons.map(({ mode, label }) => (
+            <Button
+              key={mode}
+              size="sm"
+              variant={filterMode === mode ? 'default' : 'ghost'}
+              className="rounded-none"
+              onClick={() => setFilterMode(mode)}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+
+        {filterMode === 'date' && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className={cn("w-[180px] justify-start text-left font-normal")}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(selectedDate, "dd/MM/yyyy")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(d) => d && setSelectedDate(d)}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
+        )}
+
+        {filterMode === 'month' && (
+          <>
+            <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="w-[100px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+
+        {filterMode === 'year' && (
+          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[100px] h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map((kpi) => (
