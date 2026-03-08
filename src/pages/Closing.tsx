@@ -83,13 +83,13 @@ export default function Closing() {
   };
 
   const totals = data.reduce((acc, r) => ({
-    planned: acc.planned + r.planned,
-    realized: acc.realized + r.realized,
-    billable: acc.billable + r.billable,
-    unused: acc.unused + r.unused,
-    additional: acc.additional + r.additional,
-    total_additional: acc.total_additional + r.total_additional,
-    total_value: acc.total_value + r.total_value,
+    planned: acc.planned + (r.planned || 0),
+    realized: acc.realized + (r.realized || 0),
+    billable: acc.billable + (r.billable || 0),
+    unused: acc.unused + (r.unused || 0),
+    additional: acc.additional + (r.additional || 0),
+    total_additional: acc.total_additional + (r.total_additional || 0),
+    total_value: acc.total_value + (r.total_value || 0),
   }), { planned: 0, realized: 0, billable: 0, unused: 0, additional: 0, total_additional: 0, total_value: 0 });
 
   return (
