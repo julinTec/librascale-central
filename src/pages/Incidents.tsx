@@ -117,7 +117,7 @@ export default function Incidents() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Ocorrências</h1>
-        <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Nova Ocorrência</Button>
+        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nova Ocorrência</Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
