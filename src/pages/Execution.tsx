@@ -167,8 +167,8 @@ export default function Execution() {
           <DialogHeader><DialogTitle>Registrar Execução</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Hora Real Início</Label><Input type="time" value={form.actual_start} onChange={(e) => setForm({ ...form, actual_start: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Hora Real Fim</Label><Input type="time" value={form.actual_end} onChange={(e) => setForm({ ...form, actual_end: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Hora Real Início</Label><Input type="time" value={form.actual_start} onChange={(e) => setForm(updateTimes(e.target.value, form.actual_end, form))} /></div>
+              <div className="space-y-2"><Label>Hora Real Fim</Label><Input type="time" value={form.actual_end} onChange={(e) => setForm(updateTimes(form.actual_start, e.target.value, form))} /></div>
               <div className="space-y-2"><Label>Horas Trabalhadas</Label><Input type="number" step="0.5" value={form.worked_hours} onChange={(e) => setForm({ ...form, worked_hours: Number(e.target.value) })} /></div>
               <div className="space-y-2"><Label>Horas Faturáveis</Label><Input type="number" step="0.5" value={form.billable_hours} onChange={(e) => setForm({ ...form, billable_hours: Number(e.target.value) })} /></div>
             </div>
