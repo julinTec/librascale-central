@@ -18,6 +18,8 @@ import { format } from 'date-fns';
 export default function Execution() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   type ExecStatus = 'realizada_normalmente' | 'atraso_cliente' | 'atraso_interno' | 'cancelada_cliente' | 'cancelada_internamente' | 'parcialmente_realizada' | 'regravada' | 'nao_realizada';
@@ -99,18 +101,37 @@ export default function Execution() {
     return { ...currentForm, actual_start: newStart, actual_end: newEnd, worked_hours: hours, billable_hours: hours };
   };
 
-  const filtered = schedules.filter(s =>
-    (s.title || '').toLowerCase().includes(search.toLowerCase()) ||
-    s.clients?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = schedules.filter(s => {
+    const matchText = (s.title || '').toLowerCase().includes(search.toLowerCase()) ||
+      s.clients?.name?.toLowerCase().includes(search.toLowerCase());
+    if (!matchText) return false;
+    if (filterDateFrom && s.activity_date < filterDateFrom) return false;
+    if (filterDateTo && s.activity_date > filterDateTo) return false;
+    return true;
+  });
+  const executedCount = filtered.filter(s => s.execution_logs).length;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Execução Real</h1>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">De:</Label>
+          <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">Até:</Label>
+          <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className="text-sm px-3 py-1">Agendas Executadas: {executedCount}</Badge>
       </div>
 
       <Card>

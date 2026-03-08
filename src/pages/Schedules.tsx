@@ -32,6 +32,8 @@ export default function Schedules() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
@@ -118,6 +120,8 @@ export default function Schedules() {
     if (filterStatus !== 'all' && s.status !== filterStatus) return false;
     if (filterClient !== 'all' && s.client_id !== filterClient) return false;
     if (search && !(s.title || '').toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterDateFrom && s.activity_date < filterDateFrom) return false;
+    if (filterDateTo && s.activity_date > filterDateTo) return false;
     return true;
   });
 
@@ -159,6 +163,18 @@ export default function Schedules() {
             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">De:</Label>
+          <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">Até:</Label>
+          <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className="text-sm px-3 py-1">Qtde de Agendas: {filtered.length}</Badge>
       </div>
 
       {view === 'list' ? (
