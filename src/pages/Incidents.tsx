@@ -145,6 +145,7 @@ export default function Incidents() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Impacto (min)</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-16">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,10 +157,15 @@ export default function Incidents() {
                   <TableCell className="text-sm max-w-xs truncate">{i.description}</TableCell>
                   <TableCell className="text-sm">{i.impact_minutes || 0}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{INCIDENT_STATUS_LABELS[i.status]}</Badge></TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhuma ocorrência</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma ocorrência</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
