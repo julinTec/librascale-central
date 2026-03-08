@@ -130,9 +130,12 @@ export default function Execution() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="text-sm px-3 py-1">Agendas Executadas: {executedCount}</Badge>
-      </div>
+      <Card className="w-fit">
+        <CardContent className="p-3 flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">Agendas Executadas</p>
+          <p className="text-2xl font-bold">{executedCount}</p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">
