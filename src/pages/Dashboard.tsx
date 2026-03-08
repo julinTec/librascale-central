@@ -27,7 +27,8 @@ type FilterMode = 'date' | 'month' | 'year';
 export default function Dashboard() {
   const now = new Date();
   const [filterMode, setFilterMode] = useState<FilterMode>('month');
-  const [selectedDate, setSelectedDate] = useState<Date>(now);
+  const [dateFrom, setDateFrom] = useState<Date>(now);
+  const [dateTo, setDateTo] = useState<Date>(now);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
@@ -43,17 +44,17 @@ export default function Dashboard() {
 
   const { periodStart, periodEnd } = useMemo(() => {
     if (filterMode === 'date') {
-      const d = format(selectedDate, 'yyyy-MM-dd');
-      return { periodStart: d, periodEnd: d };
+      const s = format(dateFrom, 'yyyy-MM-dd');
+      const e = format(dateTo, 'yyyy-MM-dd');
+      return { periodStart: s, periodEnd: e };
     }
     if (filterMode === 'year') {
       return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
     }
-    // month
     const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
     const end = format(lastDayOfMonth(new Date(selectedYear, selectedMonth - 1)), 'yyyy-MM-dd');
     return { periodStart: start, periodEnd: end };
-  }, [filterMode, selectedDate, selectedMonth, selectedYear]);
+  }, [filterMode, dateFrom, dateTo, selectedMonth, selectedYear]);
 
   useEffect(() => {
     loadDashboard();
@@ -130,23 +131,54 @@ export default function Dashboard() {
         </div>
 
         {filterMode === 'date' && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("w-[180px] justify-start text-left font-normal")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(selectedDate, "dd/MM/yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(d)}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+          <>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(dateFrom, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom}
+                  onSelect={(d) => {
+                    if (d) {
+                      setDateFrom(d);
+                      if (d > dateTo) setDateTo(d);
+                    }
+                  }}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            <span className="text-sm text-muted-foreground">até</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(dateTo, "dd/MM/yyyy")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo}
+                  onSelect={(d) => {
+                    if (d) {
+                      setDateTo(d);
+                      if (d < dateFrom) setDateFrom(d);
+                    }
+                  }}
+                  disabled={(d) => d < dateFrom}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </>
         )}
 
         {filterMode === 'month' && (
