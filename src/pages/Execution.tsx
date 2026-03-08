@@ -87,6 +87,17 @@ export default function Execution() {
     return (eh * 60 + em) - (sh * 60 + sm);
   };
 
+  const calcHours = (start: string, end: string): number => {
+    const mins = calcDuration(start, end);
+    if (mins <= 0) return 0;
+    return Math.round((mins / 60) * 100) / 100;
+  };
+
+  const updateTimes = (newStart: string, newEnd: string, currentForm: typeof form) => {
+    const hours = calcHours(newStart, newEnd);
+    return { ...currentForm, actual_start: newStart, actual_end: newEnd, worked_hours: hours, billable_hours: hours };
+  };
+
   const filtered = schedules.filter(s =>
     (s.title || '').toLowerCase().includes(search.toLowerCase()) ||
     s.clients?.name?.toLowerCase().includes(search.toLowerCase())
