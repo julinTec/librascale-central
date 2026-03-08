@@ -236,9 +236,12 @@ export default function Schedules() {
             </div>
             <div className="space-y-2">
               <Label>Intérprete *</Label>
-              <Select value={form.interpreter_id} onValueChange={(v) => setForm({ ...form, interpreter_id: v })}>
+              <Select value={form.interpreter_id || '_none'} onValueChange={(v) => setForm({ ...form, interpreter_id: v === '_none' ? '' : v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhum</SelectItem>
+                  {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Data *</Label><Input type="date" value={form.activity_date} onChange={(e) => setForm({ ...form, activity_date: e.target.value })} /></div>
