@@ -1,0 +1,1 @@
+ALTER TABLE public.schedules ALTER COLUMN interpreter_id DROP NOT NULL;

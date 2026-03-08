@@ -82,14 +82,16 @@ export default function Schedules() {
             });
           }
         }
-        const { error } = await supabase.from('schedules').update({ ...form, updated_by: user?.id }).eq('id', editing.id);
+        const payload = { ...form, interpreter_id: form.interpreter_id || null, updated_by: user?.id };
+        const { error } = await supabase.from('schedules').update(payload).eq('id', editing.id);
         if (error) throw error;
         if (auditLogs.length > 0) {
           await supabase.from('schedule_audit_logs').insert(auditLogs);
         }
         toast({ title: 'Agenda atualizada!' });
       } else {
-        const { error } = await supabase.from('schedules').insert({ ...form, created_by: user?.id });
+        const payload = { ...form, interpreter_id: form.interpreter_id || null, created_by: user?.id };
+        const { error } = await supabase.from('schedules').insert(payload);
         if (error) throw error;
         toast({ title: 'Agenda criada!' });
       }
@@ -236,9 +238,12 @@ export default function Schedules() {
             </div>
             <div className="space-y-2">
               <Label>Intérprete *</Label>
-              <Select value={form.interpreter_id} onValueChange={(v) => setForm({ ...form, interpreter_id: v })}>
+              <Select value={form.interpreter_id || '_none'} onValueChange={(v) => setForm({ ...form, interpreter_id: v === '_none' ? '' : v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhum</SelectItem>
+                  {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2"><Label>Data *</Label><Input type="date" value={form.activity_date} onChange={(e) => setForm({ ...form, activity_date: e.target.value })} /></div>
