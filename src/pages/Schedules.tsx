@@ -90,7 +90,8 @@ export default function Schedules() {
         }
         toast({ title: 'Agenda atualizada!' });
       } else {
-        const { error } = await supabase.from('schedules').insert({ ...form, created_by: user?.id });
+        const payload = { ...form, interpreter_id: form.interpreter_id || null, created_by: user?.id };
+        const { error } = await supabase.from('schedules').insert(payload);
         if (error) throw error;
         toast({ title: 'Agenda criada!' });
       }
