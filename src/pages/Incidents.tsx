@@ -202,6 +202,15 @@ export default function Incidents() {
               <div className="space-y-2"><Label>Impacto (minutos)</Label><Input type="number" value={form.impact_minutes} onChange={(e) => setForm({ ...form, impact_minutes: Number(e.target.value) })} /></div>
               <div className="space-y-2"><Label>Impacto Financeiro (R$)</Label><Input type="number" step="0.01" value={form.estimated_financial_impact} onChange={(e) => setForm({ ...form, estimated_financial_impact: Number(e.target.value) })} /></div>
             </div>
+            {editingId && (
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(INCIDENT_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
