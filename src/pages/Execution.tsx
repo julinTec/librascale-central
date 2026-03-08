@@ -129,7 +129,7 @@ export default function Execution() {
             </TableHeader>
             <TableBody>
               {filtered.map(s => {
-                const exec = s.execution_logs?.[0];
+                const exec = s.execution_logs;
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="text-sm">{s.activity_date ? format(new Date(s.activity_date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</TableCell>
