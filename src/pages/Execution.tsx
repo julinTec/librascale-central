@@ -148,7 +148,7 @@ export default function Execution() {
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" onClick={() => openExec(s)}>
-                        <PlayCircle className="w-4 h-4 mr-1" />Registrar
+                        <PlayCircle className="w-4 h-4 mr-1" />{exec ? 'Editar' : 'Registrar'}
                       </Button>
                     </TableCell>
                   </TableRow>
