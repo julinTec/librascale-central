@@ -18,6 +18,8 @@ import { format } from 'date-fns';
 export default function Execution() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   type ExecStatus = 'realizada_normalmente' | 'atraso_cliente' | 'atraso_interno' | 'cancelada_cliente' | 'cancelada_internamente' | 'parcialmente_realizada' | 'regravada' | 'nao_realizada';
