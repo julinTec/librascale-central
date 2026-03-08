@@ -33,7 +33,7 @@ export default function Execution() {
   const load = async () => {
     const { data } = await supabase.from('schedules')
       .select('*, clients(name), interpreters(full_name), execution_logs(*)')
-      .in('status', ['confirmada', 'em_execucao', 'concluida'])
+      .in('status', ['planejada', 'confirmada', 'em_execucao', 'concluida'])
       .order('activity_date', { ascending: false });
     if (data) setSchedules(data);
   };
