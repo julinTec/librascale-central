@@ -27,7 +27,8 @@ type FilterMode = 'date' | 'month' | 'year';
 export default function Dashboard() {
   const now = new Date();
   const [filterMode, setFilterMode] = useState<FilterMode>('month');
-  const [selectedDate, setSelectedDate] = useState<Date>(now);
+  const [dateFrom, setDateFrom] = useState<Date>(now);
+  const [dateTo, setDateTo] = useState<Date>(now);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
