@@ -163,6 +163,18 @@ export default function Schedules() {
             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">De:</Label>
+          <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm whitespace-nowrap">Até:</Label>
+          <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Badge variant="secondary" className="text-sm px-3 py-1">Qtde de Agendas: {filtered.length}</Badge>
       </div>
 
       {view === 'list' ? (
