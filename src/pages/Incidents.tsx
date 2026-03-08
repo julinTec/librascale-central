@@ -10,10 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Pencil } from 'lucide-react';
 import { INCIDENT_TYPE_LABELS, INCIDENT_STATUS_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+
+const defaultForm = {
+  schedule_id: '', client_id: '', incident_type: 'atraso_cliente' as string,
+  description: '', impact_minutes: 0, estimated_financial_impact: 0, status: 'aberta' as string, notes: '',
+};
 
 export default function Incidents() {
   const [items, setItems] = useState<any[]>([]);
@@ -22,10 +27,8 @@ export default function Incidents() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    schedule_id: '', client_id: '', incident_type: 'atraso_cliente' as string,
-    description: '', impact_minutes: 0, estimated_financial_impact: 0, status: 'aberta' as string, notes: '',
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...defaultForm });
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -47,6 +50,27 @@ export default function Incidents() {
     if (s.data) setSchedules(s.data);
   };
 
+  const openNew = () => {
+    setEditingId(null);
+    setForm({ ...defaultForm });
+    setOpen(true);
+  };
+
+  const openEdit = (incident: any) => {
+    setEditingId(incident.id);
+    setForm({
+      schedule_id: incident.schedule_id || '',
+      client_id: incident.client_id || '',
+      incident_type: incident.incident_type,
+      description: incident.description,
+      impact_minutes: incident.impact_minutes || 0,
+      estimated_financial_impact: incident.estimated_financial_impact || 0,
+      status: incident.status,
+      notes: incident.notes || '',
+    });
+    setOpen(true);
+  };
+
   const handleSave = async () => {
     try {
       const payload: any = {
@@ -56,13 +80,20 @@ export default function Incidents() {
         estimated_financial_impact: form.estimated_financial_impact,
         status: form.status,
         notes: form.notes,
-        reported_by: user?.id,
       };
       if (form.schedule_id) payload.schedule_id = form.schedule_id;
       if (form.client_id) payload.client_id = form.client_id;
-      const { error } = await supabase.from('incidents').insert(payload);
-      if (error) throw error;
-      toast({ title: 'Ocorrência registrada!' });
+
+      if (editingId) {
+        const { error } = await supabase.from('incidents').update(payload).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Ocorrência atualizada!' });
+      } else {
+        payload.reported_by = user?.id;
+        const { error } = await supabase.from('incidents').insert(payload);
+        if (error) throw error;
+        toast({ title: 'Ocorrência registrada!' });
+      }
       setOpen(false); load();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
@@ -86,7 +117,7 @@ export default function Incidents() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Ocorrências</h1>
-        <Button onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Nova Ocorrência</Button>
+        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Nova Ocorrência</Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -114,6 +145,7 @@ export default function Incidents() {
                 <TableHead>Descrição</TableHead>
                 <TableHead>Impacto (min)</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-16">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -125,10 +157,15 @@ export default function Incidents() {
                   <TableCell className="text-sm max-w-xs truncate">{i.description}</TableCell>
                   <TableCell className="text-sm">{i.impact_minutes || 0}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{INCIDENT_STATUS_LABELS[i.status]}</Badge></TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhuma ocorrência</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma ocorrência</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -137,7 +174,7 @@ export default function Incidents() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova Ocorrência</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Tipo *</Label>
@@ -165,6 +202,15 @@ export default function Incidents() {
               <div className="space-y-2"><Label>Impacto (minutos)</Label><Input type="number" value={form.impact_minutes} onChange={(e) => setForm({ ...form, impact_minutes: Number(e.target.value) })} /></div>
               <div className="space-y-2"><Label>Impacto Financeiro (R$)</Label><Input type="number" step="0.01" value={form.estimated_financial_impact} onChange={(e) => setForm({ ...form, estimated_financial_impact: Number(e.target.value) })} /></div>
             </div>
+            {editingId && (
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(INCIDENT_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
           <DialogFooter>
