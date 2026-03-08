@@ -14,16 +14,557 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clients: {
+        Row: {
+          additional_hour_rate: number | null
+          cnpj: string | null
+          contract_type: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          is_active: boolean
+          main_contact: string | null
+          monthly_hours_package: number | null
+          name: string
+          notes: string | null
+          phone: string | null
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          additional_hour_rate?: number | null
+          cnpj?: string | null
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          main_contact?: string | null
+          monthly_hours_package?: number | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          additional_hour_rate?: number | null
+          cnpj?: string | null
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          main_contact?: string | null
+          monthly_hours_package?: number | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      contract_hours: {
+        Row: {
+          additional_hour_rate: number
+          client_id: string
+          contracted_hours: number
+          created_at: string
+          hour_rate: number
+          id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          updated_at: string
+        }
+        Insert: {
+          additional_hour_rate?: number
+          client_id: string
+          contracted_hours?: number
+          created_at?: string
+          hour_rate?: number
+          id?: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          updated_at?: string
+        }
+        Update: {
+          additional_hour_rate?: number
+          client_id?: string
+          contracted_hours?: number
+          created_at?: string
+          hour_rate?: number
+          id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_hours_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      execution_logs: {
+        Row: {
+          actual_duration_minutes: number | null
+          actual_end: string | null
+          actual_start: string | null
+          billable_hours: number | null
+          created_at: string
+          created_by: string | null
+          execution_status: Database["public"]["Enums"]["execution_status"]
+          id: string
+          notes: string | null
+          schedule_id: string
+          updated_at: string
+          worked_hours: number | null
+        }
+        Insert: {
+          actual_duration_minutes?: number | null
+          actual_end?: string | null
+          actual_start?: string | null
+          billable_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          execution_status?: Database["public"]["Enums"]["execution_status"]
+          id?: string
+          notes?: string | null
+          schedule_id: string
+          updated_at?: string
+          worked_hours?: number | null
+        }
+        Update: {
+          actual_duration_minutes?: number | null
+          actual_end?: string | null
+          actual_start?: string | null
+          billable_hours?: number | null
+          created_at?: string
+          created_by?: string | null
+          execution_status?: Database["public"]["Enums"]["execution_status"]
+          id?: string
+          notes?: string | null
+          schedule_id?: string
+          updated_at?: string
+          worked_hours?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_logs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: true
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          description: string
+          estimated_financial_impact: number | null
+          id: string
+          impact_minutes: number | null
+          incident_type: Database["public"]["Enums"]["incident_type"]
+          notes: string | null
+          occurred_at: string
+          reported_by: string | null
+          schedule_id: string | null
+          status: Database["public"]["Enums"]["incident_status"]
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          description: string
+          estimated_financial_impact?: number | null
+          id?: string
+          impact_minutes?: number | null
+          incident_type: Database["public"]["Enums"]["incident_type"]
+          notes?: string | null
+          occurred_at?: string
+          reported_by?: string | null
+          schedule_id?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          description?: string
+          estimated_financial_impact?: number | null
+          id?: string
+          impact_minutes?: number | null
+          incident_type?: Database["public"]["Enums"]["incident_type"]
+          notes?: string | null
+          occurred_at?: string
+          reported_by?: string | null
+          schedule_id?: string | null
+          status?: Database["public"]["Enums"]["incident_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interpreters: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          default_availability: string | null
+          email: string | null
+          employment_type: string | null
+          full_name: string
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          phone: string | null
+          specialty: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_availability?: string | null
+          email?: string | null
+          employment_type?: string | null
+          full_name: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_availability?: string | null
+          email?: string | null
+          employment_type?: string | null
+          full_name?: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          phone?: string | null
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      period_closings: {
+        Row: {
+          additional_hours: number | null
+          billable_hours: number | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          package_balance: number | null
+          period_end: string
+          period_start: string
+          planned_hours: number | null
+          realized_hours: number | null
+          total_value: number | null
+          unused_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          additional_hours?: number | null
+          billable_hours?: number | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          package_balance?: number | null
+          period_end: string
+          period_start: string
+          planned_hours?: number | null
+          realized_hours?: number | null
+          total_value?: number | null
+          unused_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          additional_hours?: number | null
+          billable_hours?: number | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          package_balance?: number | null
+          period_end?: string
+          period_start?: string
+          planned_hours?: number | null
+          realized_hours?: number | null
+          total_value?: number | null
+          unused_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_closings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      schedule_audit_logs: {
+        Row: {
+          change_reason: string | null
+          changed_at: string
+          changed_by: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          schedule_id: string
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          schedule_id: string
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          schedule_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_audit_logs_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          activity_date: string
+          activity_type: Database["public"]["Enums"]["activity_type"]
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          internal_code: string | null
+          interpreter_id: string
+          location: string | null
+          modality: Database["public"]["Enums"]["activity_modality"]
+          notes: string | null
+          planned_duration_minutes: number | null
+          planned_end: string
+          planned_start: string
+          status: Database["public"]["Enums"]["schedule_status"]
+          title: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activity_date: string
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          internal_code?: string | null
+          interpreter_id: string
+          location?: string | null
+          modality?: Database["public"]["Enums"]["activity_modality"]
+          notes?: string | null
+          planned_duration_minutes?: number | null
+          planned_end: string
+          planned_start: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activity_date?: string
+          activity_type?: Database["public"]["Enums"]["activity_type"]
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          internal_code?: string | null
+          interpreter_id?: string
+          location?: string | null
+          modality?: Database["public"]["Enums"]["activity_modality"]
+          notes?: string | null
+          planned_duration_minutes?: number | null
+          planned_end?: string
+          planned_start?: string
+          status?: Database["public"]["Enums"]["schedule_status"]
+          title?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedules_interpreter_id_fkey"
+            columns: ["interpreter_id"]
+            isOneToOne: false
+            referencedRelation: "interpreters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      activity_modality: "estudio" | "remoto" | "ao_vivo" | "hibrido"
+      activity_type:
+        | "gravacao_estudio"
+        | "gravacao_remota"
+        | "ao_vivo_estudio"
+        | "formacao"
+        | "regravacao"
+        | "outro"
+      app_role: "admin" | "operacional" | "gestor" | "interprete"
+      execution_status:
+        | "realizada_normalmente"
+        | "atraso_cliente"
+        | "atraso_interno"
+        | "cancelada_cliente"
+        | "cancelada_internamente"
+        | "parcialmente_realizada"
+        | "regravada"
+        | "nao_realizada"
+      incident_status: "aberta" | "em_analise" | "resolvida" | "encerrada"
+      incident_type:
+        | "atraso_cliente"
+        | "atraso_interno"
+        | "cancelamento_cliente"
+        | "cancelamento_interno"
+        | "mudanca_horario"
+        | "mudanca_conteudo"
+        | "reducao_duracao"
+        | "ampliacao_duracao"
+        | "ausencia_interprete"
+        | "problema_tecnico"
+        | "divergencia_fechamento"
+        | "outro"
+      schedule_status:
+        | "planejada"
+        | "confirmada"
+        | "em_execucao"
+        | "concluida"
+        | "cancelada"
+        | "reprogramada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +691,50 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_modality: ["estudio", "remoto", "ao_vivo", "hibrido"],
+      activity_type: [
+        "gravacao_estudio",
+        "gravacao_remota",
+        "ao_vivo_estudio",
+        "formacao",
+        "regravacao",
+        "outro",
+      ],
+      app_role: ["admin", "operacional", "gestor", "interprete"],
+      execution_status: [
+        "realizada_normalmente",
+        "atraso_cliente",
+        "atraso_interno",
+        "cancelada_cliente",
+        "cancelada_internamente",
+        "parcialmente_realizada",
+        "regravada",
+        "nao_realizada",
+      ],
+      incident_status: ["aberta", "em_analise", "resolvida", "encerrada"],
+      incident_type: [
+        "atraso_cliente",
+        "atraso_interno",
+        "cancelamento_cliente",
+        "cancelamento_interno",
+        "mudanca_horario",
+        "mudanca_conteudo",
+        "reducao_duracao",
+        "ampliacao_duracao",
+        "ausencia_interprete",
+        "problema_tecnico",
+        "divergencia_fechamento",
+        "outro",
+      ],
+      schedule_status: [
+        "planejada",
+        "confirmada",
+        "em_execucao",
+        "concluida",
+        "cancelada",
+        "reprogramada",
+      ],
+    },
   },
 } as const
