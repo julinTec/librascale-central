@@ -10,10 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Pencil } from 'lucide-react';
 import { INCIDENT_TYPE_LABELS, INCIDENT_STATUS_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+
+const defaultForm = {
+  schedule_id: '', client_id: '', incident_type: 'atraso_cliente' as string,
+  description: '', impact_minutes: 0, estimated_financial_impact: 0, status: 'aberta' as string, notes: '',
+};
 
 export default function Incidents() {
   const [items, setItems] = useState<any[]>([]);
@@ -22,10 +27,8 @@ export default function Incidents() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    schedule_id: '', client_id: '', incident_type: 'atraso_cliente' as string,
-    description: '', impact_minutes: 0, estimated_financial_impact: 0, status: 'aberta' as string, notes: '',
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ ...defaultForm });
   const { user } = useAuth();
   const { toast } = useToast();
 
