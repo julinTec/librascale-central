@@ -421,7 +421,7 @@ export type Database = {
           created_by: string | null
           id: string
           internal_code: string | null
-          interpreter_id: string
+          interpreter_id: string | null
           location: string | null
           modality: Database["public"]["Enums"]["activity_modality"]
           notes: string | null
@@ -441,7 +441,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           internal_code?: string | null
-          interpreter_id: string
+          interpreter_id?: string | null
           location?: string | null
           modality?: Database["public"]["Enums"]["activity_modality"]
           notes?: string | null
@@ -461,7 +461,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           internal_code?: string | null
-          interpreter_id?: string
+          interpreter_id?: string | null
           location?: string | null
           modality?: Database["public"]["Enums"]["activity_modality"]
           notes?: string | null
