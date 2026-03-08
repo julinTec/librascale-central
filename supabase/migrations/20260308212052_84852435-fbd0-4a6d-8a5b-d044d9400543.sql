@@ -1,0 +1,1 @@
+CREATE POLICY "Operacional can delete incidents" ON public.incidents FOR DELETE TO authenticated USING (has_role(auth.uid(), 'operacional'::app_role));
