@@ -162,7 +162,7 @@ export default function Execution() {
             </div>
             <div className="space-y-2">
               <Label>Situação Final</Label>
-              <Select value={form.execution_status} onValueChange={(v) => setForm({ ...form, execution_status: v })}>
+              <Select value={form.execution_status} onValueChange={(v) => setForm({ ...form, execution_status: v as ExecStatus })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(EXECUTION_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
