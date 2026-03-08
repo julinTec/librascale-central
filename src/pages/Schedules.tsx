@@ -82,7 +82,8 @@ export default function Schedules() {
             });
           }
         }
-        const { error } = await supabase.from('schedules').update({ ...form, updated_by: user?.id }).eq('id', editing.id);
+        const payload = { ...form, interpreter_id: form.interpreter_id || null, updated_by: user?.id };
+        const { error } = await supabase.from('schedules').update(payload).eq('id', editing.id);
         if (error) throw error;
         if (auditLogs.length > 0) {
           await supabase.from('schedule_audit_logs').insert(auditLogs);
