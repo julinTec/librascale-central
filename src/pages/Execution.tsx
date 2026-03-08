@@ -101,10 +101,15 @@ export default function Execution() {
     return { ...currentForm, actual_start: newStart, actual_end: newEnd, worked_hours: hours, billable_hours: hours };
   };
 
-  const filtered = schedules.filter(s =>
-    (s.title || '').toLowerCase().includes(search.toLowerCase()) ||
-    s.clients?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = schedules.filter(s => {
+    const matchText = (s.title || '').toLowerCase().includes(search.toLowerCase()) ||
+      s.clients?.name?.toLowerCase().includes(search.toLowerCase());
+    if (!matchText) return false;
+    if (filterDateFrom && s.activity_date < filterDateFrom) return false;
+    if (filterDateTo && s.activity_date > filterDateTo) return false;
+    return true;
+  });
+  const executedCount = filtered.filter(s => s.execution_logs).length;
 
   return (
     <div className="space-y-6">
