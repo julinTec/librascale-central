@@ -23,13 +23,29 @@ export default function Closing() {
   };
 
   const loadData = async () => {
+    // Fetch schedules
     let query = supabase.from('schedules')
       .select('*, clients(name, monthly_hours_package, additional_hour_rate), execution_logs(*)')
       .gte('activity_date', periodStart).lte('activity_date', periodEnd);
     if (filterClient !== 'all') query = query.eq('client_id', filterClient);
 
-    const { data: schedules } = await query;
+    // Fetch contract_hours for the period
+    let chQuery = supabase.from('contract_hours')
+      .select('client_id, hour_rate')
+      .lte('period_start', periodEnd)
+      .gte('period_end', periodStart);
+    if (filterClient !== 'all') chQuery = chQuery.eq('client_id', filterClient);
+
+    const [{ data: schedules }, { data: contracts }] = await Promise.all([query, chQuery]);
     if (!schedules) return;
+
+    // Build client_id -> hour_rate map from contracts
+    const rateMap: Record<string, number> = {};
+    if (contracts) {
+      for (const c of contracts) {
+        rateMap[c.client_id] = c.hour_rate;
+      }
+    }
 
     // Group by client
     const clientMap: Record<string, any> = {};
@@ -40,6 +56,7 @@ export default function Closing() {
           client_name: s.clients?.name || 'N/A',
           package_hours: s.clients?.monthly_hours_package || 0,
           add_rate: s.clients?.additional_hour_rate || 0,
+          hour_rate: rateMap[cid] ?? s.clients?.additional_hour_rate ?? 0,
           planned: 0, realized: 0, billable: 0,
         };
       }
@@ -58,7 +75,8 @@ export default function Closing() {
       billable: Math.round(c.billable * 10) / 10,
       unused: Math.max(0, Math.round((c.package_hours - c.billable) * 10) / 10),
       additional: Math.max(0, Math.round((c.billable - c.package_hours) * 10) / 10),
-      total: Math.round(Math.max(0, c.billable - c.package_hours) * c.add_rate * 100) / 100,
+      total_additional: Math.round(Math.max(0, c.billable - c.package_hours) * c.add_rate * 100) / 100,
+      total_value: Math.round(c.billable * c.hour_rate * 100) / 100,
     }));
 
     setData(rows);
@@ -70,8 +88,9 @@ export default function Closing() {
     billable: acc.billable + r.billable,
     unused: acc.unused + r.unused,
     additional: acc.additional + r.additional,
-    total: acc.total + r.total,
-  }), { planned: 0, realized: 0, billable: 0, unused: 0, additional: 0, total: 0 });
+    total_additional: acc.total_additional + r.total_additional,
+    total_value: acc.total_value + r.total_value,
+  }), { planned: 0, realized: 0, billable: 0, unused: 0, additional: 0, total_additional: 0, total_value: 0 });
 
   return (
     <div className="space-y-6">
@@ -98,14 +117,15 @@ export default function Closing() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
         {[
           { label: 'Planejadas', value: `${totals.planned.toFixed(1)}h` },
           { label: 'Realizadas', value: `${totals.realized.toFixed(1)}h` },
           { label: 'Faturáveis', value: `${totals.billable.toFixed(1)}h` },
           { label: 'Não Consumidas', value: `${totals.unused.toFixed(1)}h` },
           { label: 'Adicionais', value: `${totals.additional.toFixed(1)}h` },
-          { label: 'Valor Adicional', value: `R$ ${totals.total.toFixed(2)}` },
+          { label: 'Valor Adicional', value: `R$ ${totals.total_additional.toFixed(2)}` },
+          { label: 'Valor Total', value: `R$ ${totals.total_value.toFixed(2)}` },
         ].map(kpi => (
           <Card key={kpi.label}>
             <CardContent className="p-4">
@@ -130,6 +150,7 @@ export default function Closing() {
                 <TableHead>Não Consumidas</TableHead>
                 <TableHead>Adicionais</TableHead>
                 <TableHead>Valor Adic. (R$)</TableHead>
+                <TableHead>Valor Total (R$)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -142,11 +163,12 @@ export default function Closing() {
                   <TableCell>{r.billable}h</TableCell>
                   <TableCell>{r.unused}h</TableCell>
                   <TableCell>{r.additional}h</TableCell>
-                  <TableCell>R$ {r.total.toFixed(2)}</TableCell>
+                  <TableCell>R$ {r.total_additional.toFixed(2)}</TableCell>
+                  <TableCell className="font-semibold">R$ {r.total_value.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
               {data.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum dado no período</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum dado no período</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
