@@ -40,7 +40,7 @@ export default function Execution() {
 
   const openExec = (s: any) => {
     setSelected(s);
-    const exec = s.execution_logs?.[0];
+    const exec = s.execution_logs;
     if (exec) {
       setForm({
         actual_start: exec.actual_start || '', actual_end: exec.actual_end || '',
@@ -59,7 +59,7 @@ export default function Execution() {
 
   const handleSave = async () => {
     try {
-      const existing = selected.execution_logs?.[0];
+      const existing = selected.execution_logs;
       const duration = calcDuration(form.actual_start, form.actual_end);
       const payload = { ...form, schedule_id: selected.id, actual_duration_minutes: duration, created_by: user?.id };
 
@@ -129,7 +129,7 @@ export default function Execution() {
             </TableHeader>
             <TableBody>
               {filtered.map(s => {
-                const exec = s.execution_logs?.[0];
+                const exec = s.execution_logs;
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="text-sm">{s.activity_date ? format(new Date(s.activity_date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</TableCell>
