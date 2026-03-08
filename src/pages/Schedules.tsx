@@ -41,7 +41,8 @@ export default function Schedules() {
   const [form, setForm] = useState(emptyForm);
   const [changeReason, setChangeReason] = useState('');
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
-  const { user } = useAuth();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { user, role } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
