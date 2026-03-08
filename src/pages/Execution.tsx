@@ -40,7 +40,7 @@ export default function Execution() {
 
   const openExec = (s: any) => {
     setSelected(s);
-    const exec = s.execution_logs?.[0];
+    const exec = s.execution_logs;
     if (exec) {
       setForm({
         actual_start: exec.actual_start || '', actual_end: exec.actual_end || '',
