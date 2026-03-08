@@ -173,9 +173,14 @@ export default function Incidents() {
                   <TableCell className="text-sm">{i.impact_minutes || 0}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{INCIDENT_STATUS_LABELS[i.status]}</Badge></TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(i.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
