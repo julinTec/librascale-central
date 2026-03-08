@@ -50,6 +50,27 @@ export default function Incidents() {
     if (s.data) setSchedules(s.data);
   };
 
+  const openNew = () => {
+    setEditingId(null);
+    setForm({ ...defaultForm });
+    setOpen(true);
+  };
+
+  const openEdit = (incident: any) => {
+    setEditingId(incident.id);
+    setForm({
+      schedule_id: incident.schedule_id || '',
+      client_id: incident.client_id || '',
+      incident_type: incident.incident_type,
+      description: incident.description,
+      impact_minutes: incident.impact_minutes || 0,
+      estimated_financial_impact: incident.estimated_financial_impact || 0,
+      status: incident.status,
+      notes: incident.notes || '',
+    });
+    setOpen(true);
+  };
+
   const handleSave = async () => {
     try {
       const payload: any = {
@@ -59,13 +80,20 @@ export default function Incidents() {
         estimated_financial_impact: form.estimated_financial_impact,
         status: form.status,
         notes: form.notes,
-        reported_by: user?.id,
       };
       if (form.schedule_id) payload.schedule_id = form.schedule_id;
       if (form.client_id) payload.client_id = form.client_id;
-      const { error } = await supabase.from('incidents').insert(payload);
-      if (error) throw error;
-      toast({ title: 'Ocorrência registrada!' });
+
+      if (editingId) {
+        const { error } = await supabase.from('incidents').update(payload).eq('id', editingId);
+        if (error) throw error;
+        toast({ title: 'Ocorrência atualizada!' });
+      } else {
+        payload.reported_by = user?.id;
+        const { error } = await supabase.from('incidents').insert(payload);
+        if (error) throw error;
+        toast({ title: 'Ocorrência registrada!' });
+      }
       setOpen(false); load();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
