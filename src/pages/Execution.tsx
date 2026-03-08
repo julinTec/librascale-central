@@ -59,7 +59,7 @@ export default function Execution() {
 
   const handleSave = async () => {
     try {
-      const existing = selected.execution_logs?.[0];
+      const existing = selected.execution_logs;
       const duration = calcDuration(form.actual_start, form.actual_end);
       const payload = { ...form, schedule_id: selected.id, actual_duration_minutes: duration, created_by: user?.id };
 
