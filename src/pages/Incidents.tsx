@@ -49,12 +49,18 @@ export default function Incidents() {
 
   const handleSave = async () => {
     try {
-      const { error } = await supabase.from('incidents').insert({
-        ...form,
-        schedule_id: form.schedule_id || null,
-        client_id: form.client_id || null,
+      const payload: any = {
+        incident_type: form.incident_type,
+        description: form.description,
+        impact_minutes: form.impact_minutes,
+        estimated_financial_impact: form.estimated_financial_impact,
+        status: form.status,
+        notes: form.notes,
         reported_by: user?.id,
-      });
+      };
+      if (form.schedule_id) payload.schedule_id = form.schedule_id;
+      if (form.client_id) payload.client_id = form.client_id;
+      const { error } = await supabase.from('incidents').insert(payload);
       if (error) throw error;
       toast({ title: 'Ocorrência registrada!' });
       setOpen(false); load();

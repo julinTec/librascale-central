@@ -20,9 +20,10 @@ export default function Execution() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  type ExecStatus = 'realizada_normalmente' | 'atraso_cliente' | 'atraso_interno' | 'cancelada_cliente' | 'cancelada_internamente' | 'parcialmente_realizada' | 'regravada' | 'nao_realizada';
   const [form, setForm] = useState({
     actual_start: '', actual_end: '', worked_hours: 0, billable_hours: 0,
-    execution_status: 'realizada_normalmente' as string, notes: '',
+    execution_status: 'realizada_normalmente' as ExecStatus, notes: '',
   });
   const { user } = useAuth();
   const { toast } = useToast();
