@@ -32,6 +32,8 @@ export default function Schedules() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Schedule | null>(null);
