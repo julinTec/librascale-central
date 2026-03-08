@@ -221,7 +221,16 @@ export default function Schedules() {
                     <TableCell className="text-sm">{s.interpreters?.full_name}</TableCell>
                     <TableCell className="text-sm">{MODALITY_LABELS[s.modality] || s.modality}</TableCell>
                     <TableCell><Badge className={SCHEDULE_STATUS_COLORS[s.status]}>{SCHEDULE_STATUS_LABELS[s.status]}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="w-4 h-4" /></Button></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="w-4 h-4" /></Button>
+                        {role === 'admin' && (
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(s.id)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
