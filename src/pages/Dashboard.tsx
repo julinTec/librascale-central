@@ -44,17 +44,17 @@ export default function Dashboard() {
 
   const { periodStart, periodEnd } = useMemo(() => {
     if (filterMode === 'date') {
-      const d = format(selectedDate, 'yyyy-MM-dd');
-      return { periodStart: d, periodEnd: d };
+      const s = format(dateFrom, 'yyyy-MM-dd');
+      const e = format(dateTo, 'yyyy-MM-dd');
+      return { periodStart: s, periodEnd: e };
     }
     if (filterMode === 'year') {
       return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
     }
-    // month
     const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
     const end = format(lastDayOfMonth(new Date(selectedYear, selectedMonth - 1)), 'yyyy-MM-dd');
     return { periodStart: start, periodEnd: end };
-  }, [filterMode, selectedDate, selectedMonth, selectedYear]);
+  }, [filterMode, dateFrom, dateTo, selectedMonth, selectedYear]);
 
   useEffect(() => {
     loadDashboard();
