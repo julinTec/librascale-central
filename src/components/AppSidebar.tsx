@@ -39,8 +39,8 @@ export function AppSidebar() {
               <Mic className="w-4 h-4 text-sidebar-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-sidebar-foreground">LibrasGestão</h2>
-              <p className="text-xs text-sidebar-foreground/60">Gestão de Intérpretes</p>
+              <h2 className="text-sm font-bold text-sidebar-foreground">Nosso Mundo Gestão</h2>
+              <p className="text-xs text-sidebar-foreground/60">Gestão de Acessibilidade</p>
             </div>
           </div>
         )}
