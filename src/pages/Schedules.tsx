@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, CalendarDays, List } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CalendarDays, List } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS, MODALITY_LABELS, ACTIVITY_TYPE_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
