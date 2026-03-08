@@ -29,6 +29,7 @@ export default function Incidents() {
   const [filterType, setFilterType] = useState('all');
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...defaultForm });
   const { user } = useAuth();
   const { toast } = useToast();
