@@ -48,9 +48,10 @@ export default function Execution() {
         execution_status: exec.execution_status, notes: exec.notes || '',
       });
     } else {
+      const hours = calcHours(s.planned_start || '', s.planned_end || '');
       setForm({
         actual_start: s.planned_start || '', actual_end: s.planned_end || '',
-        worked_hours: 0, billable_hours: 0, execution_status: 'realizada_normalmente', notes: '',
+        worked_hours: hours, billable_hours: hours, execution_status: 'realizada_normalmente', notes: '',
       });
     }
     setOpen(true);
