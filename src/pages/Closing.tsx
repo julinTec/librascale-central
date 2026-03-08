@@ -44,7 +44,7 @@ export default function Closing() {
         };
       }
       clientMap[cid].planned += (s.planned_duration_minutes || 0) / 60;
-      const exec = s.execution_logs?.[0];
+      const exec = s.execution_logs;
       if (exec) {
         clientMap[cid].realized += exec.worked_hours || 0;
         clientMap[cid].billable += exec.billable_hours || 0;
