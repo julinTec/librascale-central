@@ -48,9 +48,10 @@ export default function Execution() {
         execution_status: exec.execution_status, notes: exec.notes || '',
       });
     } else {
+      const hours = calcHours(s.planned_start || '', s.planned_end || '');
       setForm({
         actual_start: s.planned_start || '', actual_end: s.planned_end || '',
-        worked_hours: 0, billable_hours: 0, execution_status: 'realizada_normalmente', notes: '',
+        worked_hours: hours, billable_hours: hours, execution_status: 'realizada_normalmente', notes: '',
       });
     }
     setOpen(true);
@@ -85,6 +86,17 @@ export default function Execution() {
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
     return (eh * 60 + em) - (sh * 60 + sm);
+  };
+
+  const calcHours = (start: string, end: string): number => {
+    const mins = calcDuration(start, end);
+    if (mins <= 0) return 0;
+    return Math.round((mins / 60) * 100) / 100;
+  };
+
+  const updateTimes = (newStart: string, newEnd: string, currentForm: typeof form) => {
+    const hours = calcHours(newStart, newEnd);
+    return { ...currentForm, actual_start: newStart, actual_end: newEnd, worked_hours: hours, billable_hours: hours };
   };
 
   const filtered = schedules.filter(s =>
@@ -155,8 +167,8 @@ export default function Execution() {
           <DialogHeader><DialogTitle>Registrar Execução</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Hora Real Início</Label><Input type="time" value={form.actual_start} onChange={(e) => setForm({ ...form, actual_start: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Hora Real Fim</Label><Input type="time" value={form.actual_end} onChange={(e) => setForm({ ...form, actual_end: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Hora Real Início</Label><Input type="time" value={form.actual_start} onChange={(e) => setForm(updateTimes(e.target.value, form.actual_end, form))} /></div>
+              <div className="space-y-2"><Label>Hora Real Fim</Label><Input type="time" value={form.actual_end} onChange={(e) => setForm(updateTimes(form.actual_start, e.target.value, form))} /></div>
               <div className="space-y-2"><Label>Horas Trabalhadas</Label><Input type="number" step="0.5" value={form.worked_hours} onChange={(e) => setForm({ ...form, worked_hours: Number(e.target.value) })} /></div>
               <div className="space-y-2"><Label>Horas Faturáveis</Label><Input type="number" step="0.5" value={form.billable_hours} onChange={(e) => setForm({ ...form, billable_hours: Number(e.target.value) })} /></div>
             </div>
