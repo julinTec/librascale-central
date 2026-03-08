@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil, CalendarDays, List } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, CalendarDays, List } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS, MODALITY_LABELS, ACTIVITY_TYPE_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +41,8 @@ export default function Schedules() {
   const [form, setForm] = useState(emptyForm);
   const [changeReason, setChangeReason] = useState('');
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(new Date());
-  const { user } = useAuth();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const { user, role } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -98,6 +100,19 @@ export default function Schedules() {
         toast({ title: 'Agenda criada!' });
       }
       setOpen(false); setEditing(null); setForm(emptyForm); setChangeReason(''); load();
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const { error } = await supabase.from('schedules').delete().eq('id', deleteId);
+      if (error) throw error;
+      toast({ title: 'Agenda removida!' });
+      setDeleteId(null);
+      load();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
     }
@@ -206,7 +221,16 @@ export default function Schedules() {
                     <TableCell className="text-sm">{s.interpreters?.full_name}</TableCell>
                     <TableCell className="text-sm">{MODALITY_LABELS[s.modality] || s.modality}</TableCell>
                     <TableCell><Badge className={SCHEDULE_STATUS_COLORS[s.status]}>{SCHEDULE_STATUS_LABELS[s.status]}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="w-4 h-4" /></Button></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="w-4 h-4" /></Button>
+                        {role === 'admin' && (
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(s.id)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {filtered.length === 0 && (
@@ -306,6 +330,19 @@ export default function Schedules() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Agenda</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja remover esta agenda? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
