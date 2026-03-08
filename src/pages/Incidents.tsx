@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { INCIDENT_TYPE_LABELS, INCIDENT_STATUS_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -28,6 +29,7 @@ export default function Incidents() {
   const [filterType, setFilterType] = useState('all');
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...defaultForm });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -100,6 +102,19 @@ export default function Incidents() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const { error } = await supabase.from('incidents').delete().eq('id', deleteId);
+      if (error) throw error;
+      toast({ title: 'Ocorrência removida!' });
+      setDeleteId(null);
+      load();
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    }
+  };
+
   const filtered = items.filter(i => {
     if (filterType !== 'all' && i.incident_type !== filterType) return false;
     if (search && !i.description.toLowerCase().includes(search.toLowerCase())) return false;
@@ -158,9 +173,14 @@ export default function Incidents() {
                   <TableCell className="text-sm">{i.impact_minutes || 0}</TableCell>
                   <TableCell><Badge className={statusColors[i.status]}>{INCIDENT_STATUS_LABELS[i.status]}</Badge></TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(i.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -219,6 +239,19 @@ export default function Incidents() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Ocorrência</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja remover esta ocorrência? Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
