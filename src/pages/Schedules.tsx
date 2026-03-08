@@ -120,6 +120,8 @@ export default function Schedules() {
     if (filterStatus !== 'all' && s.status !== filterStatus) return false;
     if (filterClient !== 'all' && s.client_id !== filterClient) return false;
     if (search && !(s.title || '').toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterDateFrom && s.activity_date < filterDateFrom) return false;
+    if (filterDateTo && s.activity_date > filterDateTo) return false;
     return true;
   });
 
