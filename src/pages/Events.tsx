@@ -52,7 +52,7 @@ export default function Events() {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
-    const payload = { ...form, contract_value: Number(form.contract_value) };
+    const payload = { ...form, contract_value: Number(form.contract_value), status: form.status as EventStatus };
     if (editing) {
       const { error } = await supabase.from('events').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }

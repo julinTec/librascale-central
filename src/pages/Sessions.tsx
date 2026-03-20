@@ -69,7 +69,7 @@ export default function Sessions() {
     if (!form.event_id || !form.session_date || !form.start_time || !form.end_time) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' }); return;
     }
-    const payload = { ...form, duration_minutes: Number(form.duration_minutes) || null };
+    const payload = { ...form, duration_minutes: Number(form.duration_minutes) || null, status: form.status as SessionStatus };
     if (editing) {
       const { error } = await supabase.from('event_sessions').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }

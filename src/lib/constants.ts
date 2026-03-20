@@ -139,3 +139,45 @@ export const MODALITY_LABELS: Record<string, string> = {
   ao_vivo: 'Ao Vivo',
   hibrido: 'Híbrido',
 };
+
+export const EXECUTION_STATUS_LABELS: Record<string, string> = {
+  realizada_normalmente: 'Realizada Normalmente',
+  atraso_cliente: 'Atraso do Cliente',
+  atraso_interno: 'Atraso Interno',
+  cancelada_cliente: 'Cancelada pelo Cliente',
+  cancelada_internamente: 'Cancelada Internamente',
+  parcialmente_realizada: 'Parcialmente Realizada',
+  regravada: 'Regravada',
+  nao_realizada: 'Não Realizada',
+};
+
+export const INCIDENT_TYPE_LABELS: Record<string, string> = {
+  atraso_cliente: 'Atraso do Cliente',
+  atraso_interno: 'Atraso Interno',
+  cancelamento_cliente: 'Cancelamento pelo Cliente',
+  cancelamento_interno: 'Cancelamento Interno',
+  mudanca_horario: 'Mudança de Horário',
+  mudanca_conteudo: 'Mudança de Conteúdo',
+  reducao_duracao: 'Redução de Duração',
+  ampliacao_duracao: 'Ampliação de Duração',
+  ausencia_interprete: 'Ausência de Intérprete',
+  problema_tecnico: 'Problema Técnico',
+  divergencia_fechamento: 'Divergência de Fechamento',
+  outro: 'Outro',
+};
+
+export const INCIDENT_STATUS_LABELS: Record<string, string> = {
+  aberta: 'Aberta',
+  em_analise: 'Em Análise',
+  resolvida: 'Resolvida',
+  encerrada: 'Encerrada',
+};
+
+export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  gravacao_estudio: 'Gravação no Estúdio',
+  gravacao_remota: 'Gravação Remota',
+  ao_vivo_estudio: 'Ao Vivo + Estúdio',
+  formacao: 'Formação',
+  regravacao: 'Regravação',
+  outro: 'Outro',
+};

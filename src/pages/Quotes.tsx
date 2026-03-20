@@ -52,7 +52,7 @@ export default function Quotes() {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
-    const payload = { ...form, sessions_count: Number(form.sessions_count), quoted_value: Number(form.quoted_value) };
+    const payload = { ...form, sessions_count: Number(form.sessions_count), quoted_value: Number(form.quoted_value), status: form.status as QuoteStatus };
     if (editing) {
       const { error } = await supabase.from('event_quotes').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' }); return; }

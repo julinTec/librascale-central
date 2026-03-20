@@ -71,7 +71,7 @@ export default function Finance() {
 
   const savePayable = async () => {
     if (!payForm.event_id || !payForm.amount) { toast({ title: 'Preencha campos obrigatórios', variant: 'destructive' }); return; }
-    const payload = { ...payForm, amount: Number(payForm.amount), paid_date: payForm.paid_date || null, interpreter_id: payForm.interpreter_id || null };
+    const payload = { ...payForm, amount: Number(payForm.amount), paid_date: payForm.paid_date || null, interpreter_id: payForm.interpreter_id || null, status: payForm.status as PayableStatus };
     if (payEditing) {
       const { error } = await supabase.from('event_payables').update(payload).eq('id', payEditing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
