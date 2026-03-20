@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Pencil, Search } from 'lucide-react';
+import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS } from '@/lib/constants';
+import { format } from 'date-fns';
+
+const emptyForm = {
+  client_id: '', event_name: '', description: '', venue: '',
+  contract_value: 0, status: 'planejado' as string,
+  start_date: '', end_date: '', notes: '',
+};
+
+export default function Events() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [events, setEvents] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  useEffect(() => { load(); loadClients(); }, []);
+
+  const load = async () => {
+    const { data } = await supabase.from('events').select('*, clients(name)').order('created_at', { ascending: false });
+    setEvents(data || []);
+  };
+
+  const loadClients = async () => {
+    const { data } = await supabase.from('clients').select('id, name').eq('is_active', true).order('name');
+    setClients(data || []);
+  };
+
+  const handleSave = async () => {
+    if (!form.client_id || !form.event_name) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+    const payload = { ...form, contract_value: Number(form.contract_value) };
+    if (editing) {
+      const { error } = await supabase.from('events').update(payload).eq('id', editing.id);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    } else {
+      const { error } = await supabase.from('events').insert({ ...payload, created_by: user?.id });
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    }
+    toast({ title: editing ? 'Evento atualizado' : 'Evento criado' });
+    setOpen(false); setEditing(null); setForm(emptyForm); load();
+  };
+
+  const openEdit = (e: any) => {
+    setEditing(e);
+    setForm({
+      client_id: e.client_id, event_name: e.event_name, description: e.description || '',
+      venue: e.venue || '', contract_value: e.contract_value || 0, status: e.status,
+      start_date: e.start_date || '', end_date: e.end_date || '', notes: e.notes || '',
+    });
+    setOpen(true);
+  };
+
+  const filtered = events.filter(e => {
+    const matchSearch = e.event_name?.toLowerCase().includes(search.toLowerCase()) ||
+      (e.clients as any)?.name?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === 'all' || e.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const totalValue = filtered.reduce((s, e) => s + Number(e.contract_value || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Eventos</h1>
+        <Button onClick={() => { setEditing(null); setForm(emptyForm); setOpen(true); }}>
+          <Plus className="mr-2 h-4 w-4" /> Novo Evento
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total de Eventos</p><p className="text-2xl font-bold">{filtered.length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Valor Contratado</p><p className="text-2xl font-bold">R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p></CardContent></Card>
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar evento ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {Object.entries(EVENT_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Evento</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Período</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[80px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(e => (
+                <TableRow key={e.id}>
+                  <TableCell className="font-medium">{e.event_name}</TableCell>
+                  <TableCell>{(e.clients as any)?.name}</TableCell>
+                  <TableCell>R$ {Number(e.contract_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {e.start_date ? format(new Date(e.start_date + 'T12:00:00'), 'dd/MM/yy') : '—'}
+                    {e.end_date ? ` - ${format(new Date(e.end_date + 'T12:00:00'), 'dd/MM/yy')}` : ''}
+                  </TableCell>
+                  <TableCell><Badge className={EVENT_STATUS_COLORS[e.status]}>{EVENT_STATUS_LABELS[e.status]}</Badge></TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum evento encontrado.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editing ? 'Editar Evento' : 'Novo Evento'}</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Cliente *</Label>
+                <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Nome do Evento *</Label><Input value={form.event_name} onChange={e => setForm({ ...form, event_name: e.target.value })} /></div>
+            </div>
+            <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Local</Label><Input value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} /></div>
+              <div><Label>Valor Contratado (R$)</Label><Input type="number" step="0.01" value={form.contract_value} onChange={e => setForm({ ...form, contract_value: Number(e.target.value) })} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><Label>Data Início</Label><Input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
+              <div><Label>Data Fim</Label><Input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} /></div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(EVENT_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import {
-  LayoutDashboard, Users, Mic, CalendarDays, PlayCircle,
-  AlertTriangle, FileBarChart, History, Settings, LogOut,
+  LayoutDashboard, Users, Mic, FileText, Calendar, Layers,
+  DollarSign, BarChart3, Settings, LogOut,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -16,11 +16,11 @@ const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Clientes', url: '/clientes', icon: Users },
   { title: 'Intérpretes', url: '/interpretes', icon: Mic },
-  { title: 'Agenda', url: '/agenda', icon: CalendarDays },
-  { title: 'Execução', url: '/execucao', icon: PlayCircle },
-  { title: 'Ocorrências', url: '/ocorrencias', icon: AlertTriangle },
-  { title: 'Fechamento', url: '/fechamento', icon: FileBarChart },
-  { title: 'Auditoria', url: '/auditoria', icon: History },
+  { title: 'Orçamentos', url: '/orcamentos', icon: FileText },
+  { title: 'Eventos', url: '/eventos', icon: Calendar },
+  { title: 'Sessões', url: '/sessoes', icon: Layers },
+  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
+  { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
 
@@ -40,7 +40,7 @@ export function AppSidebar() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-sidebar-foreground">Nosso Mundo Gestão</h2>
-              <p className="text-xs text-sidebar-foreground/60">Gestão de Acessibilidade</p>
+              <p className="text-xs text-sidebar-foreground/60">Gestão de Eventos</p>
             </div>
           </div>
         )}

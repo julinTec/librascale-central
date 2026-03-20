@@ -9,11 +9,11 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Interpreters from "./pages/Interpreters";
-import Schedules from "./pages/Schedules";
-import Execution from "./pages/Execution";
-import Incidents from "./pages/Incidents";
-import Closing from "./pages/Closing";
-import Audit from "./pages/Audit";
+import Quotes from "./pages/Quotes";
+import Events from "./pages/Events";
+import Sessions from "./pages/Sessions";
+import Finance from "./pages/Finance";
+import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -47,11 +47,11 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/clientes" element={<Clients />} />
               <Route path="/interpretes" element={<Interpreters />} />
-              <Route path="/agenda" element={<Schedules />} />
-              <Route path="/execucao" element={<Execution />} />
-              <Route path="/ocorrencias" element={<Incidents />} />
-              <Route path="/fechamento" element={<Closing />} />
-              <Route path="/auditoria" element={<Audit />} />
+              <Route path="/orcamentos" element={<Quotes />} />
+              <Route path="/eventos" element={<Events />} />
+              <Route path="/sessoes" element={<Sessions />} />
+              <Route path="/financeiro" element={<Finance />} />
+              <Route path="/relatorios" element={<Reports />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

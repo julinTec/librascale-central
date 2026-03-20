@@ -1,0 +1,293 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
+import { SESSION_STATUS_LABELS, SESSION_STATUS_COLORS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '@/lib/constants';
+import { format } from 'date-fns';
+
+const emptySession = { event_id: '', session_date: '', start_time: '', end_time: '', duration_minutes: 0, location: '', notes: '', status: 'planejada' as string };
+const emptyAssignment = { interpreter_id: '', role: '', fee_expected: 0, fee_final: 0, transport_expected: 0, transport_final: 0, notes: '' };
+
+export default function Sessions() {
+  const { toast } = useToast();
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [interpreters, setInterpreters] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState(emptySession);
+  const [search, setSearch] = useState('');
+  const [filterEvent, setFilterEvent] = useState('all');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [assignments, setAssignments] = useState<Record<string, any[]>>({});
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignSessionId, setAssignSessionId] = useState('');
+  const [assignForm, setAssignForm] = useState(emptyAssignment);
+  const [editingAssign, setEditingAssign] = useState<any>(null);
+
+  useEffect(() => { load(); loadEvents(); loadInterpreters(); }, []);
+
+  const load = async () => {
+    const { data } = await supabase.from('event_sessions').select('*, events(event_name, clients(name))').order('session_date', { ascending: false });
+    setSessions(data || []);
+  };
+
+  const loadEvents = async () => {
+    const { data } = await supabase.from('events').select('id, event_name').order('event_name');
+    setEvents(data || []);
+  };
+
+  const loadInterpreters = async () => {
+    const { data } = await supabase.from('interpreters').select('id, full_name').eq('is_active', true).order('full_name');
+    setInterpreters(data || []);
+  };
+
+  const loadAssignments = async (sessionId: string) => {
+    const { data } = await supabase.from('event_assignments').select('*, interpreters(full_name)').eq('session_id', sessionId);
+    setAssignments(prev => ({ ...prev, [sessionId]: data || [] }));
+  };
+
+  const toggleExpand = (id: string) => {
+    const next = new Set(expanded);
+    if (next.has(id)) { next.delete(id); } else { next.add(id); loadAssignments(id); }
+    setExpanded(next);
+  };
+
+  const handleSave = async () => {
+    if (!form.event_id || !form.session_date || !form.start_time || !form.end_time) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' }); return;
+    }
+    const payload = { ...form, duration_minutes: Number(form.duration_minutes) || null };
+    if (editing) {
+      const { error } = await supabase.from('event_sessions').update(payload).eq('id', editing.id);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    } else {
+      const { error } = await supabase.from('event_sessions').insert(payload);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    }
+    toast({ title: editing ? 'Sessão atualizada' : 'Sessão criada' });
+    setOpen(false); setEditing(null); setForm(emptySession); load();
+  };
+
+  const openEdit = (s: any) => {
+    setEditing(s);
+    setForm({
+      event_id: s.event_id, session_date: s.session_date, start_time: s.start_time?.slice(0, 5) || '',
+      end_time: s.end_time?.slice(0, 5) || '', duration_minutes: s.duration_minutes || 0,
+      location: s.location || '', notes: s.notes || '', status: s.status,
+    });
+    setOpen(true);
+  };
+
+  const handleSaveAssignment = async () => {
+    if (!assignForm.interpreter_id) { toast({ title: 'Selecione um intérprete', variant: 'destructive' }); return; }
+    const payload = {
+      ...assignForm, session_id: assignSessionId,
+      fee_expected: Number(assignForm.fee_expected), fee_final: Number(assignForm.fee_final) || null,
+      transport_expected: Number(assignForm.transport_expected), transport_final: Number(assignForm.transport_final) || null,
+    };
+    if (editingAssign) {
+      const { error } = await supabase.from('event_assignments').update(payload).eq('id', editingAssign.id);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    } else {
+      const { error } = await supabase.from('event_assignments').insert(payload);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    }
+    toast({ title: editingAssign ? 'Escala atualizada' : 'Intérprete escalado' });
+    setAssignOpen(false); setEditingAssign(null); setAssignForm(emptyAssignment);
+    loadAssignments(assignSessionId);
+  };
+
+  const filtered = sessions.filter(s => {
+    const evName = (s.events as any)?.event_name || '';
+    const matchSearch = evName.toLowerCase().includes(search.toLowerCase());
+    const matchEvent = filterEvent === 'all' || s.event_id === filterEvent;
+    return matchSearch && matchEvent;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Sessões</h1>
+        <Button onClick={() => { setEditing(null); setForm(emptySession); setOpen(true); }}>
+          <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-3 mb-4">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar por evento..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            </div>
+            <Select value={filterEvent} onValueChange={setFilterEvent}>
+              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Evento" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Eventos</SelectItem>
+                {events.map(ev => <SelectItem key={ev.id} value={ev.id}>{ev.event_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]" />
+                <TableHead>Evento</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Horário</TableHead>
+                <TableHead>Local</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[120px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map(s => (
+                <>
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleExpand(s.id)}>
+                        {expanded.has(s.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      </Button>
+                    </TableCell>
+                    <TableCell className="font-medium">{(s.events as any)?.event_name}</TableCell>
+                    <TableCell>{format(new Date(s.session_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{s.location || '—'}</TableCell>
+                    <TableCell><Badge className={SESSION_STATUS_COLORS[s.status]}>{SESSION_STATUS_LABELS[s.status]}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" title="Escalar intérprete" onClick={() => {
+                          setAssignSessionId(s.id); setEditingAssign(null); setAssignForm(emptyAssignment); setAssignOpen(true);
+                        }}><UserPlus className="h-4 w-4" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {expanded.has(s.id) && (
+                    <TableRow key={`${s.id}-assignments`}>
+                      <TableCell colSpan={7} className="bg-muted/30 p-4">
+                        <p className="text-sm font-medium mb-2">Intérpretes Escalados</p>
+                        {(assignments[s.id] || []).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">Nenhum intérprete escalado.</p>
+                        ) : (
+                          <Table>
+                            <TableHeader><TableRow>
+                              <TableHead>Intérprete</TableHead><TableHead>Função</TableHead>
+                              <TableHead>Cachê Prev.</TableHead><TableHead>Cachê Final</TableHead>
+                              <TableHead>Transp. Prev.</TableHead><TableHead>Transp. Final</TableHead>
+                              <TableHead>Pagamento</TableHead><TableHead className="w-[60px]" />
+                            </TableRow></TableHeader>
+                            <TableBody>
+                              {(assignments[s.id] || []).map((a: any) => (
+                                <TableRow key={a.id}>
+                                  <TableCell>{(a.interpreters as any)?.full_name}</TableCell>
+                                  <TableCell>{a.role || '—'}</TableCell>
+                                  <TableCell>R$ {Number(a.fee_expected || 0).toFixed(2)}</TableCell>
+                                  <TableCell>R$ {Number(a.fee_final || 0).toFixed(2)}</TableCell>
+                                  <TableCell>R$ {Number(a.transport_expected || 0).toFixed(2)}</TableCell>
+                                  <TableCell>R$ {Number(a.transport_final || 0).toFixed(2)}</TableCell>
+                                  <TableCell><Badge className={PAYMENT_STATUS_COLORS[a.payment_status]}>{PAYMENT_STATUS_LABELS[a.payment_status]}</Badge></TableCell>
+                                  <TableCell>
+                                    <Button variant="ghost" size="icon" onClick={() => {
+                                      setAssignSessionId(s.id); setEditingAssign(a);
+                                      setAssignForm({ interpreter_id: a.interpreter_id, role: a.role || '', fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0, transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0, notes: a.notes || '' });
+                                      setAssignOpen(true);
+                                    }}><Pencil className="h-3 w-3" /></Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhuma sessão encontrada.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Session Dialog */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editing ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label>Evento *</Label>
+              <Select value={form.event_id} onValueChange={v => setForm({ ...form, event_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{events.map(ev => <SelectItem key={ev.id} value={ev.id}>{ev.event_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><Label>Data *</Label><Input type="date" value={form.session_date} onChange={e => setForm({ ...form, session_date: e.target.value })} /></div>
+              <div><Label>Início *</Label><Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} /></div>
+              <div><Label>Fim *</Label><Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Local</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
+              <div>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(SESSION_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assignment Dialog */}
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editingAssign ? 'Editar Escala' : 'Escalar Intérprete'}</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label>Intérprete *</Label>
+              <Select value={assignForm.interpreter_id} onValueChange={v => setAssignForm({ ...assignForm, interpreter_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>{interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Função</Label><Input value={assignForm.role} onChange={e => setAssignForm({ ...assignForm, role: e.target.value })} placeholder="Ex: Intérprete principal" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Cachê Previsto (R$)</Label><Input type="number" step="0.01" value={assignForm.fee_expected} onChange={e => setAssignForm({ ...assignForm, fee_expected: Number(e.target.value) })} /></div>
+              <div><Label>Cachê Final (R$)</Label><Input type="number" step="0.01" value={assignForm.fee_final} onChange={e => setAssignForm({ ...assignForm, fee_final: Number(e.target.value) })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Transporte Previsto (R$)</Label><Input type="number" step="0.01" value={assignForm.transport_expected} onChange={e => setAssignForm({ ...assignForm, transport_expected: Number(e.target.value) })} /></div>
+              <div><Label>Transporte Final (R$)</Label><Input type="number" step="0.01" value={assignForm.transport_final} onChange={e => setAssignForm({ ...assignForm, transport_final: Number(e.target.value) })} /></div>
+            </div>
+            <div><Label>Observações</Label><Textarea value={assignForm.notes} onChange={e => setAssignForm({ ...assignForm, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveAssignment}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
