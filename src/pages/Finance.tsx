@@ -57,7 +57,7 @@ export default function Finance() {
 
   const saveReceivable = async () => {
     if (!recForm.event_id || !recForm.amount) { toast({ title: 'Preencha campos obrigatórios', variant: 'destructive' }); return; }
-    const payload = { ...recForm, amount: Number(recForm.amount), received_date: recForm.received_date || null };
+    const payload = { ...recForm, amount: Number(recForm.amount), received_date: recForm.received_date || null, status: recForm.status as ReceivableStatus };
     if (recEditing) {
       const { error } = await supabase.from('event_receivables').update(payload).eq('id', recEditing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
