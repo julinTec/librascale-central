@@ -115,6 +115,416 @@ export type Database = {
           },
         ]
       }
+      event_assignments: {
+        Row: {
+          created_at: string
+          fee_expected: number | null
+          fee_final: number | null
+          id: string
+          interpreter_id: string
+          notes: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          role: string | null
+          session_id: string
+          transport_expected: number | null
+          transport_final: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fee_expected?: number | null
+          fee_final?: number | null
+          id?: string
+          interpreter_id: string
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          role?: string | null
+          session_id: string
+          transport_expected?: number | null
+          transport_final?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fee_expected?: number | null
+          fee_final?: number | null
+          id?: string
+          interpreter_id?: string
+          notes?: string | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          role?: string | null
+          session_id?: string
+          transport_expected?: number | null
+          transport_final?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_assignments_interpreter_id_fkey"
+            columns: ["interpreter_id"]
+            isOneToOne: false
+            referencedRelation: "interpreters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_assignments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "event_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          event_id: string
+          expense_date: string | null
+          expense_type: Database["public"]["Enums"]["expense_type"]
+          id: string
+          interpreter_id: string | null
+          notes: string | null
+          session_id: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          event_id: string
+          expense_date?: string | null
+          expense_type?: Database["public"]["Enums"]["expense_type"]
+          id?: string
+          interpreter_id?: string | null
+          notes?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          expense_date?: string | null
+          expense_type?: Database["public"]["Enums"]["expense_type"]
+          id?: string
+          interpreter_id?: string | null
+          notes?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_expenses_interpreter_id_fkey"
+            columns: ["interpreter_id"]
+            isOneToOne: false
+            referencedRelation: "interpreters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_expenses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "event_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_payables: {
+        Row: {
+          amount: number
+          assignment_id: string | null
+          created_at: string
+          due_date: string | null
+          event_id: string
+          id: string
+          interpreter_id: string | null
+          notes: string | null
+          paid_date: string | null
+          status: Database["public"]["Enums"]["payable_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          assignment_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          event_id: string
+          id?: string
+          interpreter_id?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          status?: Database["public"]["Enums"]["payable_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          assignment_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          event_id?: string
+          id?: string
+          interpreter_id?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          status?: Database["public"]["Enums"]["payable_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_payables_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "event_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payables_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_payables_interpreter_id_fkey"
+            columns: ["interpreter_id"]
+            isOneToOne: false
+            referencedRelation: "interpreters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_quotes: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          end_date: string | null
+          event_name: string
+          event_type: string | null
+          id: string
+          notes: string | null
+          quoted_value: number | null
+          sessions_count: number | null
+          source_channel: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["quote_status"]
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          event_name: string
+          event_type?: string | null
+          id?: string
+          notes?: string | null
+          quoted_value?: number | null
+          sessions_count?: number | null
+          source_channel?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_date?: string | null
+          event_name?: string
+          event_type?: string | null
+          id?: string
+          notes?: string | null
+          quoted_value?: number | null
+          sessions_count?: number | null
+          source_channel?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["quote_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_receivables: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string | null
+          event_id: string
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          received_date: string | null
+          status: Database["public"]["Enums"]["receivable_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          event_id: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          received_date?: string | null
+          status?: Database["public"]["Enums"]["receivable_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string | null
+          event_id?: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          received_date?: string | null
+          status?: Database["public"]["Enums"]["receivable_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_receivables_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_sessions: {
+        Row: {
+          created_at: string
+          duration_minutes: number | null
+          end_time: string
+          event_id: string
+          id: string
+          location: string | null
+          notes: string | null
+          session_date: string
+          start_time: string
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_time: string
+          event_id: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          session_date: string
+          start_time: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number | null
+          end_time?: string
+          event_id?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          session_date?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          client_id: string
+          contract_value: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          event_name: string
+          id: string
+          notes: string | null
+          quote_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["event_status"]
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          client_id: string
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_name: string
+          id?: string
+          notes?: string | null
+          quote_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          client_id?: string
+          contract_value?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_name?: string
+          id?: string
+          notes?: string | null
+          quote_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "event_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       execution_logs: {
         Row: {
           actual_duration_minutes: number | null
@@ -535,6 +945,14 @@ export type Database = {
         | "regravacao"
         | "outro"
       app_role: "admin" | "operacional" | "gestor" | "interprete"
+      event_status:
+        | "planejado"
+        | "confirmado"
+        | "em_execucao"
+        | "concluido"
+        | "faturado"
+        | "encerrado"
+        | "cancelado"
       execution_status:
         | "realizada_normalmente"
         | "atraso_cliente"
@@ -544,6 +962,13 @@ export type Database = {
         | "parcialmente_realizada"
         | "regravada"
         | "nao_realizada"
+      expense_type:
+        | "cache"
+        | "transporte"
+        | "alimentacao"
+        | "hospedagem"
+        | "taxa"
+        | "outro"
       incident_status: "aberta" | "em_analise" | "resolvida" | "encerrada"
       incident_type:
         | "atraso_cliente"
@@ -558,6 +983,20 @@ export type Database = {
         | "problema_tecnico"
         | "divergencia_fechamento"
         | "outro"
+      payable_status: "pendente" | "pago_parcial" | "pago" | "vencido"
+      payment_status: "pendente" | "parcialmente_pago" | "pago"
+      quote_status:
+        | "recebido"
+        | "em_orcamento"
+        | "enviado"
+        | "aprovado"
+        | "recusado"
+        | "cancelado"
+      receivable_status:
+        | "pendente"
+        | "recebido_parcial"
+        | "recebido"
+        | "vencido"
       schedule_status:
         | "planejada"
         | "confirmada"
@@ -565,6 +1004,7 @@ export type Database = {
         | "concluida"
         | "cancelada"
         | "reprogramada"
+      session_status: "planejada" | "confirmada" | "realizada" | "cancelada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -702,6 +1142,15 @@ export const Constants = {
         "outro",
       ],
       app_role: ["admin", "operacional", "gestor", "interprete"],
+      event_status: [
+        "planejado",
+        "confirmado",
+        "em_execucao",
+        "concluido",
+        "faturado",
+        "encerrado",
+        "cancelado",
+      ],
       execution_status: [
         "realizada_normalmente",
         "atraso_cliente",
@@ -711,6 +1160,14 @@ export const Constants = {
         "parcialmente_realizada",
         "regravada",
         "nao_realizada",
+      ],
+      expense_type: [
+        "cache",
+        "transporte",
+        "alimentacao",
+        "hospedagem",
+        "taxa",
+        "outro",
       ],
       incident_status: ["aberta", "em_analise", "resolvida", "encerrada"],
       incident_type: [
@@ -727,6 +1184,22 @@ export const Constants = {
         "divergencia_fechamento",
         "outro",
       ],
+      payable_status: ["pendente", "pago_parcial", "pago", "vencido"],
+      payment_status: ["pendente", "parcialmente_pago", "pago"],
+      quote_status: [
+        "recebido",
+        "em_orcamento",
+        "enviado",
+        "aprovado",
+        "recusado",
+        "cancelado",
+      ],
+      receivable_status: [
+        "pendente",
+        "recebido_parcial",
+        "recebido",
+        "vencido",
+      ],
       schedule_status: [
         "planejada",
         "confirmada",
@@ -735,6 +1208,7 @@ export const Constants = {
         "cancelada",
         "reprogramada",
       ],
+      session_status: ["planejada", "confirmada", "realizada", "cancelada"],
     },
   },
 } as const
