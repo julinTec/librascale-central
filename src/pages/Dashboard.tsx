@@ -4,16 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarDays, Clock, AlertTriangle, CheckCircle, XCircle, Users, CalendarIcon } from 'lucide-react';
-import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS } from '@/lib/constants';
+import { Calendar, DollarSign, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
+import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS } from '@/lib/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, lastDayOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 
-const PIE_COLORS = ['hsl(152,45%,28%)', 'hsl(38,92%,50%)', 'hsl(0,72%,51%)', 'hsl(210,80%,52%)', 'hsl(152,20%,60%)', 'hsl(280,60%,50%)'];
+const PIE_COLORS = ['hsl(152,45%,28%)', 'hsl(38,92%,50%)', 'hsl(0,72%,51%)', 'hsl(210,80%,52%)', 'hsl(152,20%,60%)', 'hsl(280,60%,50%)', 'hsl(30,80%,50%)'];
 
 const MONTHS = [
   { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' }, { value: '3', label: 'Março' },
@@ -22,207 +18,100 @@ const MONTHS = [
   { value: '10', label: 'Outubro' }, { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
 ];
 
-type FilterMode = 'date' | 'month' | 'year';
+type FilterMode = 'month' | 'year';
 
 export default function Dashboard() {
   const now = new Date();
   const [filterMode, setFilterMode] = useState<FilterMode>('month');
-  const [dateFrom, setDateFrom] = useState<Date>(now);
-  const [dateTo, setDateTo] = useState<Date>(now);
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i), []);
 
-  const [stats, setStats] = useState({ planned: 0, realized: 0, billable: 0, activities: 0, cancellations: 0, delays: 0 });
-  const [todaySchedules, setTodaySchedules] = useState<any[]>([]);
+  const [stats, setStats] = useState({ events: 0, contractValue: 0, toReceive: 0, toPay: 0, margin: 0, pendingPayments: 0 });
   const [statusData, setStatusData] = useState<any[]>([]);
-  const [clientHours, setClientHours] = useState<any[]>([]);
-
-  const years = useMemo(() => {
-    const y = now.getFullYear();
-    return Array.from({ length: 5 }, (_, i) => y - 2 + i);
-  }, []);
+  const [clientVolume, setClientVolume] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
 
   const { periodStart, periodEnd } = useMemo(() => {
-    if (filterMode === 'date') {
-      const s = format(dateFrom, 'yyyy-MM-dd');
-      const e = format(dateTo, 'yyyy-MM-dd');
-      return { periodStart: s, periodEnd: e };
-    }
-    if (filterMode === 'year') {
-      return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
-    }
-    const start = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
-    const end = format(lastDayOfMonth(new Date(selectedYear, selectedMonth - 1)), 'yyyy-MM-dd');
-    return { periodStart: start, periodEnd: end };
-  }, [filterMode, dateFrom, dateTo, selectedMonth, selectedYear]);
+    if (filterMode === 'year') return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
+    const s = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+    const e = format(lastDayOfMonth(new Date(selectedYear, selectedMonth - 1)), 'yyyy-MM-dd');
+    return { periodStart: s, periodEnd: e };
+  }, [filterMode, selectedMonth, selectedYear]);
 
-  useEffect(() => {
-    loadDashboard();
-  }, [periodStart, periodEnd]);
+  useEffect(() => { loadDashboard(); }, [periodStart, periodEnd]);
 
   const loadDashboard = async () => {
-    const today = new Date().toISOString().split('T')[0];
-
-    const [schedulesRes, todayRes, execRes, incidentsRes] = await Promise.all([
-      supabase.from('schedules').select('status, planned_duration_minutes, client_id, clients(name)').gte('activity_date', periodStart).lte('activity_date', periodEnd),
-      supabase.from('schedules').select('*, clients(name), interpreters(full_name)').eq('activity_date', today).order('planned_start'),
-      supabase.from('execution_logs').select('billable_hours, worked_hours, schedule_id, schedules!inner(activity_date)').gte('schedules.activity_date', periodStart).lte('schedules.activity_date', periodEnd),
-      supabase.from('incidents').select('incident_type').gte('created_at', periodStart).lte('created_at', periodEnd + 'T23:59:59'),
+    const [eventsRes, recRes, payRes, upcomingRes] = await Promise.all([
+      supabase.from('events').select('id, event_name, status, contract_value, client_id, clients(name)').gte('start_date', periodStart).lte('start_date', periodEnd),
+      supabase.from('event_receivables').select('amount, status, event_id'),
+      supabase.from('event_payables').select('amount, status, event_id'),
+      supabase.from('events').select('id, event_name, start_date, status, clients(name)').gte('start_date', new Date().toISOString().split('T')[0]).order('start_date').limit(5),
     ]);
 
-    const schedules = schedulesRes.data || [];
-    const execs = execRes.data || [];
-    const incidents = incidentsRes.data || [];
+    const evts = eventsRes.data || [];
+    const recs = recRes.data || [];
+    const pays = payRes.data || [];
 
-    const plannedMins = schedules.reduce((s, r) => s + (r.planned_duration_minutes || 0), 0);
-    const realizedH = execs.reduce((s, r) => s + (r.worked_hours || 0), 0);
-    const billableH = execs.reduce((s, r) => s + (r.billable_hours || 0), 0);
-    const cancellations = schedules.filter(s => s.status === 'cancelada').length;
-    const delays = incidents.filter(i => i.incident_type === 'atraso_cliente' || i.incident_type === 'atraso_interno').length;
+    const evtIds = new Set(evts.map(e => e.id));
+    const toReceive = recs.filter(r => evtIds.has(r.event_id) && (r.status === 'pendente' || r.status === 'vencido')).reduce((s, r) => s + Number(r.amount), 0);
+    const toPay = pays.filter(p => evtIds.has(p.event_id) && (p.status === 'pendente' || p.status === 'vencido')).reduce((s, p) => s + Number(p.amount), 0);
+    const contractValue = evts.reduce((s, e) => s + Number(e.contract_value || 0), 0);
+    const pendingPayments = pays.filter(p => evtIds.has(p.event_id) && p.status === 'pendente').length;
 
-    setStats({ planned: Math.round(plannedMins / 60 * 10) / 10, realized: realizedH, billable: billableH, activities: schedules.length, cancellations, delays });
-    setTodaySchedules(todayRes.data || []);
+    setStats({ events: evts.length, contractValue, toReceive, toPay, margin: contractValue - toPay, pendingPayments });
+    setUpcomingEvents(upcomingRes.data || []);
 
     const statusCounts: Record<string, number> = {};
-    schedules.forEach(s => { statusCounts[s.status] = (statusCounts[s.status] || 0) + 1; });
-    setStatusData(Object.entries(statusCounts).map(([name, value]) => ({ name: SCHEDULE_STATUS_LABELS[name] || name, value })));
+    evts.forEach(e => { statusCounts[e.status] = (statusCounts[e.status] || 0) + 1; });
+    setStatusData(Object.entries(statusCounts).map(([name, value]) => ({ name: EVENT_STATUS_LABELS[name] || name, value })));
 
     const clientMap: Record<string, number> = {};
-    schedules.forEach(s => {
-      const cName = (s.clients as any)?.name || 'N/A';
-      clientMap[cName] = (clientMap[cName] || 0) + (s.planned_duration_minutes || 0) / 60;
-    });
-    setClientHours(Object.entries(clientMap).map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 })));
+    evts.forEach(e => { const n = (e.clients as any)?.name || 'N/A'; clientMap[n] = (clientMap[n] || 0) + Number(e.contract_value || 0); });
+    setClientVolume(Object.entries(clientMap).map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 })));
   };
 
-  const kpis = [
-    { label: 'Horas Planejadas', value: `${stats.planned}h`, icon: Clock, color: 'text-primary' },
-    { label: 'Horas Realizadas', value: `${stats.realized}h`, icon: CheckCircle, color: 'text-success' },
-    { label: 'Horas Faturáveis', value: `${stats.billable}h`, icon: CalendarDays, color: 'text-info' },
-    { label: 'Atividades', value: stats.activities, icon: Users, color: 'text-primary' },
-    { label: 'Cancelamentos', value: stats.cancellations, icon: XCircle, color: 'text-destructive' },
-    { label: 'Atrasos', value: stats.delays, icon: AlertTriangle, color: 'text-warning' },
-  ];
+  const fmtMoney = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
-  const modeButtons: { mode: FilterMode; label: string }[] = [
-    { mode: 'date', label: 'Data' },
-    { mode: 'month', label: 'Mês' },
-    { mode: 'year', label: 'Ano' },
+  const kpis = [
+    { label: 'Eventos', value: stats.events, icon: Calendar, color: 'text-primary' },
+    { label: 'Valor Contratado', value: fmtMoney(stats.contractValue), icon: DollarSign, color: 'text-primary' },
+    { label: 'A Receber', value: fmtMoney(stats.toReceive), icon: TrendingUp, color: 'text-success' },
+    { label: 'A Pagar', value: fmtMoney(stats.toPay), icon: TrendingDown, color: 'text-destructive' },
+    { label: 'Margem Prevista', value: fmtMoney(stats.margin), icon: DollarSign, color: 'text-info' },
+    { label: 'Pgtos Pendentes', value: stats.pendingPayments, icon: AlertTriangle, color: 'text-warning' },
   ];
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      {/* Filter bar */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex rounded-md border border-input overflow-hidden">
-          {modeButtons.map(({ mode, label }) => (
-            <Button
-              key={mode}
-              size="sm"
-              variant={filterMode === mode ? 'default' : 'ghost'}
-              className="rounded-none"
-              onClick={() => setFilterMode(mode)}
-            >
-              {label}
-            </Button>
-          ))}
+          <Button size="sm" variant={filterMode === 'month' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('month')}>Mês</Button>
+          <Button size="sm" variant={filterMode === 'year' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('year')}>Ano</Button>
         </div>
-
-        {filterMode === 'date' && (
-          <>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(dateFrom, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateFrom}
-                  onSelect={(d) => {
-                    if (d) {
-                      setDateFrom(d);
-                      if (d > dateTo) setDateTo(d);
-                    }
-                  }}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            <span className="text-sm text-muted-foreground">até</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className={cn("w-[160px] justify-start text-left font-normal")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(dateTo, "dd/MM/yyyy")}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dateTo}
-                  onSelect={(d) => {
-                    if (d) {
-                      setDateTo(d);
-                      if (d < dateFrom) setDateFrom(d);
-                    }
-                  }}
-                  disabled={(d) => d < dateFrom}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-          </>
-        )}
-
         {filterMode === 'month' && (
-          <>
-            <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
-              <SelectTrigger className="w-[140px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-              <SelectTrigger className="w-[100px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </>
-        )}
-
-        {filterMode === 'year' && (
-          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-            <SelectTrigger className="w-[100px] h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
-            </SelectContent>
+          <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
+            <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
           </Select>
         )}
+        <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+          <SelectTrigger className="w-[100px] h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {kpis.map((kpi) => (
+        {kpis.map(kpi => (
           <Card key={kpi.label}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
                 <span className="text-xs text-muted-foreground">{kpi.label}</span>
               </div>
-              <p className="text-2xl font-bold">{kpi.value}</p>
+              <p className="text-xl font-bold truncate">{kpi.value}</p>
             </CardContent>
           </Card>
         ))}
@@ -230,16 +119,16 @@ export default function Dashboard() {
 
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-lg">Horas por Cliente</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Volume Financeiro por Cliente</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={clientHours}>
+                <BarChart data={clientVolume}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={12} />
                   <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="hours" fill="hsl(152,45%,28%)" radius={[4, 4, 0, 0]} />
+                  <Tooltip formatter={(v: number) => fmtMoney(v)} />
+                  <Bar dataKey="value" fill="hsl(152,45%,28%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -247,7 +136,7 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-lg">Distribuição por Status</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-lg">Eventos por Status</CardTitle></CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
@@ -264,21 +153,21 @@ export default function Dashboard() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg">Agenda do Dia</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-lg">Próximos Eventos</CardTitle></CardHeader>
         <CardContent>
-          {todaySchedules.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhuma atividade agendada para hoje.</p>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Nenhum evento próximo.</p>
           ) : (
             <div className="space-y-3">
-              {todaySchedules.map((s) => (
-                <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border">
+              {upcomingEvents.map(e => (
+                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium text-sm">{s.title || 'Sem título'}</p>
+                    <p className="font-medium text-sm">{e.event_name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {(s.clients as any)?.name} • {(s.interpreters as any)?.full_name} • {s.planned_start?.slice(0, 5)} - {s.planned_end?.slice(0, 5)}
+                      {(e.clients as any)?.name} • {e.start_date ? format(new Date(e.start_date + 'T12:00:00'), 'dd/MM/yyyy') : '—'}
                     </p>
                   </div>
-                  <Badge className={SCHEDULE_STATUS_COLORS[s.status]}>{SCHEDULE_STATUS_LABELS[s.status]}</Badge>
+                  <Badge className={EVENT_STATUS_COLORS[e.status]}>{EVENT_STATUS_LABELS[e.status]}</Badge>
                 </div>
               ))}
             </div>
