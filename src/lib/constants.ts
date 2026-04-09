@@ -1,3 +1,87 @@
+// === Professional Type ===
+export const PROFESSIONAL_TYPE_LABELS: Record<string, string> = {
+  interprete_libras: 'Intérprete de Libras',
+  audiodescritor: 'Audiodescritor',
+  consultor: 'Consultor',
+  locutor: 'Locutor',
+  assistente: 'Assistente',
+  outro: 'Outro',
+};
+
+// === Event Type ===
+export const EVENT_TYPE_LABELS: Record<string, string> = {
+  evento_pontual: 'Evento Pontual',
+  temporada: 'Temporada',
+  palestra: 'Palestra',
+  gravacao: 'Gravação',
+  servico_administrativo: 'Serviço Administrativo',
+  video_remoto: 'Vídeo Remoto',
+  outro: 'Outro',
+};
+
+// === Event Modality ===
+export const EVENT_MODALITY_LABELS: Record<string, string> = {
+  presencial: 'Presencial',
+  remoto: 'Remoto',
+  hibrido: 'Híbrido',
+};
+
+// === Billing Type ===
+export const BILLING_TYPE_LABELS: Record<string, string> = {
+  unico: 'Único',
+  por_sessao: 'Por Sessão',
+  mensal: 'Mensal',
+  fechado_periodo: 'Fechado por Período',
+  misto: 'Misto',
+};
+
+// === Service Type ===
+export const SERVICE_TYPE_LABELS: Record<string, string> = {
+  interprete_libras: 'Intérprete de Libras',
+  audiodescricao: 'Audiodescrição',
+  consultoria: 'Consultoria em Acessibilidade',
+  locucao: 'Locução',
+  aluguel_equipamento: 'Aluguel de Equipamento',
+  assistencia: 'Assistência Operacional',
+  outro: 'Outro',
+};
+
+// === Billing Mode ===
+export const BILLING_MODE_LABELS: Record<string, string> = {
+  por_sessao: 'Por Sessão',
+  por_diaria: 'Por Diária',
+  valor_fechado: 'Valor Fechado',
+  valor_mensal: 'Valor Mensal',
+  item_unico: 'Item Único',
+};
+
+// === Revenue Type ===
+export const REVENUE_TYPE_LABELS: Record<string, string> = {
+  faturamento_sessao: 'Faturamento por Sessão',
+  faturamento_mensal: 'Faturamento Mensal',
+  faturamento_unico: 'Faturamento Único',
+  valor_adicional: 'Valor Adicional',
+  outro: 'Outro',
+};
+
+// === Cost Type ===
+export const COST_TYPE_LABELS: Record<string, string> = {
+  mao_de_obra: 'Mão de Obra',
+  aluguel_equipamento: 'Aluguel de Equipamento',
+  imposto: 'Imposto',
+  deslocamento: 'Deslocamento',
+  alimentacao: 'Alimentação',
+  hospedagem: 'Hospedagem',
+  outro: 'Outro',
+};
+
+// === Payment Mode ===
+export const PAYMENT_MODE_LABELS: Record<string, string> = {
+  por_sessao: 'Por Sessão',
+  por_diaria: 'Por Diária',
+  valor_fechado: 'Valor Fechado',
+};
+
 // === Quote Status ===
 export const QUOTE_STATUS_LABELS: Record<string, string> = {
   recebido: 'Recebido',
@@ -38,19 +122,21 @@ export const EVENT_STATUS_COLORS: Record<string, string> = {
   cancelado: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-// === Session Status ===
-export const SESSION_STATUS_LABELS: Record<string, string> = {
-  planejada: 'Planejada',
+// === Schedule Status (Agenda) ===
+export const SCHEDULE_STATUS_V2_LABELS: Record<string, string> = {
+  agendada: 'Agendada',
   confirmada: 'Confirmada',
   realizada: 'Realizada',
   cancelada: 'Cancelada',
+  reagendada: 'Reagendada',
 };
 
-export const SESSION_STATUS_COLORS: Record<string, string> = {
-  planejada: 'bg-info/10 text-info border-info/20',
+export const SCHEDULE_STATUS_V2_COLORS: Record<string, string> = {
+  agendada: 'bg-info/10 text-info border-info/20',
   confirmada: 'bg-success/10 text-success border-success/20',
   realizada: 'bg-primary/10 text-primary border-primary/20',
   cancelada: 'bg-destructive/10 text-destructive border-destructive/20',
+  reagendada: 'bg-warning/10 text-warning border-warning/20',
 };
 
 // === Payment Status ===
@@ -64,16 +150,6 @@ export const PAYMENT_STATUS_COLORS: Record<string, string> = {
   pendente: 'bg-warning/10 text-warning border-warning/20',
   parcialmente_pago: 'bg-info/10 text-info border-info/20',
   pago: 'bg-success/10 text-success border-success/20',
-};
-
-// === Expense Type ===
-export const EXPENSE_TYPE_LABELS: Record<string, string> = {
-  cache: 'Cachê',
-  transporte: 'Transporte',
-  alimentacao: 'Alimentação',
-  hospedagem: 'Hospedagem',
-  taxa: 'Taxa',
-  outro: 'Outro',
 };
 
 // === Receivable Status ===
@@ -106,7 +182,7 @@ export const PAYABLE_STATUS_COLORS: Record<string, string> = {
   vencido: 'bg-destructive/10 text-destructive border-destructive/20',
 };
 
-// === Roles (kept from original) ===
+// === Roles ===
 export const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
   operacional: 'Operacional',
@@ -115,6 +191,9 @@ export const ROLE_LABELS: Record<string, string> = {
 };
 
 // === Legacy (kept for backward compatibility) ===
+export const SESSION_STATUS_LABELS = SCHEDULE_STATUS_V2_LABELS;
+export const SESSION_STATUS_COLORS = SCHEDULE_STATUS_V2_COLORS;
+
 export const SCHEDULE_STATUS_LABELS: Record<string, string> = {
   planejada: 'Planejada',
   confirmada: 'Confirmada',
@@ -179,5 +258,14 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   ao_vivo_estudio: 'Ao Vivo + Estúdio',
   formacao: 'Formação',
   regravacao: 'Regravação',
+  outro: 'Outro',
+};
+
+export const EXPENSE_TYPE_LABELS: Record<string, string> = {
+  cache: 'Cachê',
+  transporte: 'Transporte',
+  alimentacao: 'Alimentação',
+  hospedagem: 'Hospedagem',
+  taxa: 'Taxa',
   outro: 'Outro',
 };

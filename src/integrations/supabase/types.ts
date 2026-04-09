@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      budget_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_recurring: boolean
+          notes: string | null
+          quantity: number
+          quote_id: string
+          service_type: Database["public"]["Enums"]["service_type"]
+          total_value: number
+          unit: string | null
+          unit_value: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          quantity?: number
+          quote_id: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          total_value?: number
+          unit?: string | null
+          unit_value?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_recurring?: boolean
+          notes?: string | null
+          quantity?: number
+          quote_id?: string
+          service_type?: Database["public"]["Enums"]["service_type"]
+          total_value?: number
+          unit?: string | null
+          unit_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_items_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "event_quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           additional_hour_rate: number | null
@@ -123,11 +173,16 @@ export type Database = {
           id: string
           interpreter_id: string
           notes: string | null
+          payment_mode: Database["public"]["Enums"]["payment_mode"]
           payment_status: Database["public"]["Enums"]["payment_status"]
+          quantity: number
           role: string | null
+          service_role: string | null
           session_id: string
+          total_value: number
           transport_expected: number | null
           transport_final: number | null
+          unit_value: number
           updated_at: string
         }
         Insert: {
@@ -137,11 +192,16 @@ export type Database = {
           id?: string
           interpreter_id: string
           notes?: string | null
+          payment_mode?: Database["public"]["Enums"]["payment_mode"]
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          quantity?: number
           role?: string | null
+          service_role?: string | null
           session_id: string
+          total_value?: number
           transport_expected?: number | null
           transport_final?: number | null
+          unit_value?: number
           updated_at?: string
         }
         Update: {
@@ -151,11 +211,16 @@ export type Database = {
           id?: string
           interpreter_id?: string
           notes?: string | null
+          payment_mode?: Database["public"]["Enums"]["payment_mode"]
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          quantity?: number
           role?: string | null
+          service_role?: string | null
           session_id?: string
+          total_value?: number
           transport_expected?: number | null
           transport_final?: number | null
+          unit_value?: number
           updated_at?: string
         }
         Relationships: [
@@ -240,39 +305,51 @@ export type Database = {
         Row: {
           amount: number
           assignment_id: string | null
+          competence_date: string | null
+          cost_type: Database["public"]["Enums"]["cost_type"]
           created_at: string
+          description: string | null
           due_date: string | null
           event_id: string
           id: string
           interpreter_id: string | null
           notes: string | null
           paid_date: string | null
+          schedule_id: string | null
           status: Database["public"]["Enums"]["payable_status"]
           updated_at: string
         }
         Insert: {
           amount?: number
           assignment_id?: string | null
+          competence_date?: string | null
+          cost_type?: Database["public"]["Enums"]["cost_type"]
           created_at?: string
+          description?: string | null
           due_date?: string | null
           event_id: string
           id?: string
           interpreter_id?: string | null
           notes?: string | null
           paid_date?: string | null
+          schedule_id?: string | null
           status?: Database["public"]["Enums"]["payable_status"]
           updated_at?: string
         }
         Update: {
           amount?: number
           assignment_id?: string | null
+          competence_date?: string | null
+          cost_type?: Database["public"]["Enums"]["cost_type"]
           created_at?: string
+          description?: string | null
           due_date?: string | null
           event_id?: string
           id?: string
           interpreter_id?: string | null
           notes?: string | null
           paid_date?: string | null
+          schedule_id?: string | null
           status?: Database["public"]["Enums"]["payable_status"]
           updated_at?: string
         }
@@ -302,7 +379,7 @@ export type Database = {
       }
       event_quotes: {
         Row: {
-          client_id: string
+          client_id: string | null
           created_at: string
           created_by: string | null
           end_date: string | null
@@ -319,7 +396,7 @@ export type Database = {
           venue: string | null
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           end_date?: string | null
@@ -336,7 +413,7 @@ export type Database = {
           venue?: string | null
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           created_at?: string
           created_by?: string | null
           end_date?: string | null
@@ -365,43 +442,111 @@ export type Database = {
       event_receivables: {
         Row: {
           amount: number
+          client_id: string | null
+          competence_date: string | null
           created_at: string
+          description: string | null
           due_date: string | null
           event_id: string
           id: string
           invoice_number: string | null
+          net_amount: number
           notes: string | null
           received_date: string | null
+          revenue_type: Database["public"]["Enums"]["revenue_type"]
           status: Database["public"]["Enums"]["receivable_status"]
+          tax_amount: number
+          tax_percentage: number
           updated_at: string
         }
         Insert: {
           amount?: number
+          client_id?: string | null
+          competence_date?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string | null
           event_id: string
           id?: string
           invoice_number?: string | null
+          net_amount?: number
           notes?: string | null
           received_date?: string | null
+          revenue_type?: Database["public"]["Enums"]["revenue_type"]
           status?: Database["public"]["Enums"]["receivable_status"]
+          tax_amount?: number
+          tax_percentage?: number
           updated_at?: string
         }
         Update: {
           amount?: number
+          client_id?: string | null
+          competence_date?: string | null
           created_at?: string
+          description?: string | null
           due_date?: string | null
           event_id?: string
           id?: string
           invoice_number?: string | null
+          net_amount?: number
           notes?: string | null
           received_date?: string | null
+          revenue_type?: Database["public"]["Enums"]["revenue_type"]
           status?: Database["public"]["Enums"]["receivable_status"]
+          tax_amount?: number
+          tax_percentage?: number
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "event_receivables_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_services: {
+        Row: {
+          billing_mode: Database["public"]["Enums"]["billing_mode"]
+          created_at: string
+          description: string | null
+          event_id: string
+          expected_value: number
+          id: string
+          notes: string | null
+          quantity: number
+          service_type: Database["public"]["Enums"]["service_type"]
+          updated_at: string
+        }
+        Insert: {
+          billing_mode?: Database["public"]["Enums"]["billing_mode"]
+          created_at?: string
+          description?: string | null
+          event_id: string
+          expected_value?: number
+          id?: string
+          notes?: string | null
+          quantity?: number
+          service_type?: Database["public"]["Enums"]["service_type"]
+          updated_at?: string
+        }
+        Update: {
+          billing_mode?: Database["public"]["Enums"]["billing_mode"]
+          created_at?: string
+          description?: string | null
+          event_id?: string
+          expected_value?: number
+          id?: string
+          notes?: string | null
+          quantity?: number
+          service_type?: Database["public"]["Enums"]["service_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_services_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
@@ -417,10 +562,12 @@ export type Database = {
           event_id: string
           id: string
           location: string | null
+          modality: Database["public"]["Enums"]["event_modality"]
           notes: string | null
           session_date: string
           start_time: string
-          status: Database["public"]["Enums"]["session_status"]
+          status: Database["public"]["Enums"]["schedule_status_v2"]
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -430,10 +577,12 @@ export type Database = {
           event_id: string
           id?: string
           location?: string | null
+          modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           session_date: string
           start_time: string
-          status?: Database["public"]["Enums"]["session_status"]
+          status?: Database["public"]["Enums"]["schedule_status_v2"]
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -443,10 +592,12 @@ export type Database = {
           event_id?: string
           id?: string
           location?: string | null
+          modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           session_date?: string
           start_time?: string
-          status?: Database["public"]["Enums"]["session_status"]
+          status?: Database["public"]["Enums"]["schedule_status_v2"]
+          title?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -461,14 +612,17 @@ export type Database = {
       }
       events: {
         Row: {
-          client_id: string
+          billing_type: Database["public"]["Enums"]["billing_type"]
+          client_id: string | null
           contract_value: number | null
           created_at: string
           created_by: string | null
           description: string | null
           end_date: string | null
           event_name: string
+          event_type: Database["public"]["Enums"]["event_type_enum"]
           id: string
+          modality: Database["public"]["Enums"]["event_modality"]
           notes: string | null
           quote_id: string | null
           start_date: string | null
@@ -477,14 +631,17 @@ export type Database = {
           venue: string | null
         }
         Insert: {
-          client_id: string
+          billing_type?: Database["public"]["Enums"]["billing_type"]
+          client_id?: string | null
           contract_value?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_date?: string | null
           event_name: string
+          event_type?: Database["public"]["Enums"]["event_type_enum"]
           id?: string
+          modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           quote_id?: string | null
           start_date?: string | null
@@ -493,14 +650,17 @@ export type Database = {
           venue?: string | null
         }
         Update: {
-          client_id?: string
+          billing_type?: Database["public"]["Enums"]["billing_type"]
+          client_id?: string | null
           contract_value?: number | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           end_date?: string | null
           event_name?: string
+          event_type?: Database["public"]["Enums"]["event_type_enum"]
           id?: string
+          modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           quote_id?: string | null
           start_date?: string | null
@@ -655,6 +815,7 @@ export type Database = {
           is_active: boolean
           notes: string | null
           phone: string | null
+          professional_type: Database["public"]["Enums"]["professional_type"]
           specialty: string | null
           updated_at: string
           user_id: string | null
@@ -672,6 +833,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           phone?: string | null
+          professional_type?: Database["public"]["Enums"]["professional_type"]
           specialty?: string | null
           updated_at?: string
           user_id?: string | null
@@ -689,6 +851,7 @@ export type Database = {
           is_active?: boolean
           notes?: string | null
           phone?: string | null
+          professional_type?: Database["public"]["Enums"]["professional_type"]
           specialty?: string | null
           updated_at?: string
           user_id?: string | null
@@ -900,6 +1063,33 @@ export type Database = {
           },
         ]
       }
+      tax_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          percentage: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          percentage?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          percentage?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -945,6 +1135,27 @@ export type Database = {
         | "regravacao"
         | "outro"
       app_role: "admin" | "operacional" | "gestor" | "interprete"
+      billing_mode:
+        | "por_sessao"
+        | "por_diaria"
+        | "valor_fechado"
+        | "valor_mensal"
+        | "item_unico"
+      billing_type:
+        | "unico"
+        | "por_sessao"
+        | "mensal"
+        | "fechado_periodo"
+        | "misto"
+      cost_type:
+        | "mao_de_obra"
+        | "aluguel_equipamento"
+        | "imposto"
+        | "deslocamento"
+        | "alimentacao"
+        | "hospedagem"
+        | "outro"
+      event_modality: "presencial" | "remoto" | "hibrido"
       event_status:
         | "planejado"
         | "confirmado"
@@ -953,6 +1164,14 @@ export type Database = {
         | "faturado"
         | "encerrado"
         | "cancelado"
+      event_type_enum:
+        | "evento_pontual"
+        | "temporada"
+        | "palestra"
+        | "gravacao"
+        | "servico_administrativo"
+        | "video_remoto"
+        | "outro"
       execution_status:
         | "realizada_normalmente"
         | "atraso_cliente"
@@ -984,7 +1203,15 @@ export type Database = {
         | "divergencia_fechamento"
         | "outro"
       payable_status: "pendente" | "pago_parcial" | "pago" | "vencido"
+      payment_mode: "por_sessao" | "por_diaria" | "valor_fechado"
       payment_status: "pendente" | "parcialmente_pago" | "pago"
+      professional_type:
+        | "interprete_libras"
+        | "audiodescritor"
+        | "consultor"
+        | "locutor"
+        | "assistente"
+        | "outro"
       quote_status:
         | "recebido"
         | "em_orcamento"
@@ -997,6 +1224,12 @@ export type Database = {
         | "recebido_parcial"
         | "recebido"
         | "vencido"
+      revenue_type:
+        | "faturamento_sessao"
+        | "faturamento_mensal"
+        | "faturamento_unico"
+        | "valor_adicional"
+        | "outro"
       schedule_status:
         | "planejada"
         | "confirmada"
@@ -1004,6 +1237,20 @@ export type Database = {
         | "concluida"
         | "cancelada"
         | "reprogramada"
+      schedule_status_v2:
+        | "agendada"
+        | "confirmada"
+        | "realizada"
+        | "cancelada"
+        | "reagendada"
+      service_type:
+        | "interprete_libras"
+        | "audiodescricao"
+        | "consultoria"
+        | "locucao"
+        | "aluguel_equipamento"
+        | "assistencia"
+        | "outro"
       session_status: "planejada" | "confirmada" | "realizada" | "cancelada"
     }
     CompositeTypes: {
@@ -1142,6 +1389,30 @@ export const Constants = {
         "outro",
       ],
       app_role: ["admin", "operacional", "gestor", "interprete"],
+      billing_mode: [
+        "por_sessao",
+        "por_diaria",
+        "valor_fechado",
+        "valor_mensal",
+        "item_unico",
+      ],
+      billing_type: [
+        "unico",
+        "por_sessao",
+        "mensal",
+        "fechado_periodo",
+        "misto",
+      ],
+      cost_type: [
+        "mao_de_obra",
+        "aluguel_equipamento",
+        "imposto",
+        "deslocamento",
+        "alimentacao",
+        "hospedagem",
+        "outro",
+      ],
+      event_modality: ["presencial", "remoto", "hibrido"],
       event_status: [
         "planejado",
         "confirmado",
@@ -1150,6 +1421,15 @@ export const Constants = {
         "faturado",
         "encerrado",
         "cancelado",
+      ],
+      event_type_enum: [
+        "evento_pontual",
+        "temporada",
+        "palestra",
+        "gravacao",
+        "servico_administrativo",
+        "video_remoto",
+        "outro",
       ],
       execution_status: [
         "realizada_normalmente",
@@ -1185,7 +1465,16 @@ export const Constants = {
         "outro",
       ],
       payable_status: ["pendente", "pago_parcial", "pago", "vencido"],
+      payment_mode: ["por_sessao", "por_diaria", "valor_fechado"],
       payment_status: ["pendente", "parcialmente_pago", "pago"],
+      professional_type: [
+        "interprete_libras",
+        "audiodescritor",
+        "consultor",
+        "locutor",
+        "assistente",
+        "outro",
+      ],
       quote_status: [
         "recebido",
         "em_orcamento",
@@ -1200,6 +1489,13 @@ export const Constants = {
         "recebido",
         "vencido",
       ],
+      revenue_type: [
+        "faturamento_sessao",
+        "faturamento_mensal",
+        "faturamento_unico",
+        "valor_adicional",
+        "outro",
+      ],
       schedule_status: [
         "planejada",
         "confirmada",
@@ -1207,6 +1503,22 @@ export const Constants = {
         "concluida",
         "cancelada",
         "reprogramada",
+      ],
+      schedule_status_v2: [
+        "agendada",
+        "confirmada",
+        "realizada",
+        "cancelada",
+        "reagendada",
+      ],
+      service_type: [
+        "interprete_libras",
+        "audiodescricao",
+        "consultoria",
+        "locucao",
+        "aluguel_equipamento",
+        "assistencia",
+        "outro",
       ],
       session_status: ["planejada", "confirmada", "realizada", "cancelada"],
     },

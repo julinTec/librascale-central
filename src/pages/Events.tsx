@@ -15,14 +15,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Search } from 'lucide-react';
-import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS } from '@/lib/constants';
+import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS, EVENT_TYPE_LABELS, EVENT_MODALITY_LABELS, BILLING_TYPE_LABELS, SERVICE_TYPE_LABELS, BILLING_MODE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
 const emptyForm = {
   client_id: '', event_name: '', description: '', venue: '',
   contract_value: 0, status: 'planejado' as string,
   start_date: '', end_date: '', notes: '',
+  event_type: 'evento_pontual' as string,
+  modality: 'presencial' as string,
+  billing_type: 'unico' as string,
 };
+
+const emptyService = { service_type: 'interprete_libras' as string, description: '', quantity: 1, billing_mode: 'valor_fechado' as string, expected_value: 0, notes: '' };
 
 export default function Events() {
   const { user } = useAuth();
@@ -34,6 +39,11 @@ export default function Events() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  // Event services
+  const [services, setServices] = useState<any[]>([]);
+  const [svcOpen, setSvcOpen] = useState(false);
+  const [svcForm, setSvcForm] = useState(emptyService);
+  const [svcEventId, setSvcEventId] = useState('');
 
   useEffect(() => { load(); loadClients(); }, []);
 
@@ -47,12 +57,24 @@ export default function Events() {
     setClients(data || []);
   };
 
+  const loadServices = async (eventId: string) => {
+    const { data } = await supabase.from('event_services').select('*').eq('event_id', eventId).order('created_at');
+    setServices(data || []);
+  };
+
   const handleSave = async () => {
-    if (!form.client_id || !form.event_name) {
-      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
-      return;
+    if (!form.event_name) {
+      toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
     }
-    const payload = { ...form, contract_value: Number(form.contract_value), status: form.status as EventStatus };
+    const payload = {
+      ...form,
+      client_id: form.client_id || null,
+      contract_value: Number(form.contract_value),
+      status: form.status as EventStatus,
+      event_type: form.event_type as any,
+      modality: form.modality as any,
+      billing_type: form.billing_type as any,
+    };
     if (editing) {
       const { error } = await supabase.from('events').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
@@ -67,11 +89,24 @@ export default function Events() {
   const openEdit = (e: any) => {
     setEditing(e);
     setForm({
-      client_id: e.client_id, event_name: e.event_name, description: e.description || '',
+      client_id: e.client_id || '', event_name: e.event_name, description: e.description || '',
       venue: e.venue || '', contract_value: e.contract_value || 0, status: e.status,
       start_date: e.start_date || '', end_date: e.end_date || '', notes: e.notes || '',
+      event_type: e.event_type || 'evento_pontual',
+      modality: e.modality || 'presencial',
+      billing_type: e.billing_type || 'unico',
     });
     setOpen(true);
+    loadServices(e.id);
+  };
+
+  const handleSaveService = async () => {
+    if (!svcEventId) return;
+    const payload = { ...svcForm, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
+    const { error } = await supabase.from('event_services').insert(payload);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Serviço adicionado' });
+    setSvcOpen(false); setSvcForm(emptyService); loadServices(svcEventId);
   };
 
   const filtered = events.filter(e => {
@@ -87,7 +122,7 @@ export default function Events() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Eventos</h1>
-        <Button onClick={() => { setEditing(null); setForm(emptyForm); setOpen(true); }}>
+        <Button onClick={() => { setEditing(null); setForm(emptyForm); setServices([]); setOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" /> Novo Evento
         </Button>
       </div>
@@ -118,6 +153,8 @@ export default function Events() {
               <TableRow>
                 <TableHead>Evento</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Modalidade</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Período</TableHead>
                 <TableHead>Status</TableHead>
@@ -128,7 +165,9 @@ export default function Events() {
               {filtered.map(e => (
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.event_name}</TableCell>
-                  <TableCell>{(e.clients as any)?.name}</TableCell>
+                  <TableCell>{(e.clients as any)?.name || '—'}</TableCell>
+                  <TableCell><Badge variant="outline">{EVENT_TYPE_LABELS[e.event_type] || e.event_type}</Badge></TableCell>
+                  <TableCell className="text-sm">{EVENT_MODALITY_LABELS[e.modality] || e.modality}</TableCell>
                   <TableCell>R$ {Number(e.contract_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {e.start_date ? format(new Date(e.start_date + 'T12:00:00'), 'dd/MM/yy') : '—'}
@@ -141,7 +180,7 @@ export default function Events() {
                 </TableRow>
               ))}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum evento encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum evento encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -154,13 +193,39 @@ export default function Events() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Cliente *</Label>
+                <Label>Cliente (opcional)</Label>
                 <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem cliente</SelectItem>
+                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
               <div><Label>Nome do Evento *</Label><Input value={form.event_name} onChange={e => setForm({ ...form, event_name: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Tipo do Evento</Label>
+                <Select value={form.event_type} onValueChange={v => setForm({ ...form, event_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(EVENT_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Modalidade</Label>
+                <Select value={form.modality} onValueChange={v => setForm({ ...form, modality: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(EVENT_MODALITY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Tipo Faturamento</Label>
+                <Select value={form.billing_type} onValueChange={v => setForm({ ...form, billing_type: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(BILLING_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
@@ -179,10 +244,69 @@ export default function Events() {
               </div>
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+
+            {/* Event Services section */}
+            {editing && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Serviços do Evento</Label>
+                  <Button size="sm" variant="outline" onClick={() => { setSvcEventId(editing.id); setSvcForm(emptyService); setSvcOpen(true); }}>
+                    <Plus className="h-3 w-3 mr-1" /> Serviço
+                  </Button>
+                </div>
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {services.map(svc => (
+                      <div key={svc.id} className="flex items-center justify-between p-2 rounded border text-sm">
+                        <div>
+                          <Badge variant="outline" className="mr-2">{SERVICE_TYPE_LABELS[svc.service_type] || svc.service_type}</Badge>
+                          <span className="text-muted-foreground">{svc.description || ''} • Qtd: {svc.quantity} • {BILLING_MODE_LABELS[svc.billing_mode]}</span>
+                        </div>
+                        <span className="font-medium">R$ {Number(svc.expected_value || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Service Dialog */}
+      <Dialog open={svcOpen} onOpenChange={setSvcOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Adicionar Serviço</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label>Tipo de Serviço</Label>
+              <Select value={svcForm.service_type} onValueChange={v => setSvcForm({ ...svcForm, service_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Descrição</Label><Input value={svcForm.description} onChange={e => setSvcForm({ ...svcForm, description: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Quantidade</Label><Input type="number" min={1} value={svcForm.quantity} onChange={e => setSvcForm({ ...svcForm, quantity: Number(e.target.value) })} /></div>
+              <div>
+                <Label>Forma de Cobrança</Label>
+                <Select value={svcForm.billing_mode} onValueChange={v => setSvcForm({ ...svcForm, billing_mode: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{Object.entries(BILLING_MODE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Valor Previsto (R$)</Label><Input type="number" step="0.01" value={svcForm.expected_value} onChange={e => setSvcForm({ ...svcForm, expected_value: Number(e.target.value) })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSvcOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveService}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
