@@ -199,7 +199,7 @@ export default function Agenda() {
                     <TableCell className="text-sm">{EVENT_MODALITY_LABELS[s.modality] || s.modality}</TableCell>
                     <TableCell><Badge className={SCHEDULE_STATUS_V2_COLORS[s.status]}>{SCHEDULE_STATUS_V2_LABELS[s.status]}</Badge></TableCell>
                     <TableCell>
-                      {hasConflict(s) && <AlertTriangle className="h-4 w-4 text-warning" title="Conflito de horário" />}
+                      {hasConflict(s) && <span title="Conflito de horário"><AlertTriangle className="h-4 w-4 text-warning" /></span>}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
