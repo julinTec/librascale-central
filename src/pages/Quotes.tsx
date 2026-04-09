@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 
 type QuoteStatus = Database['public']['Enums']['quote_status'];
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, ArrowRightCircle, Search } from 'lucide-react';
-import { QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS } from '@/lib/constants';
+import { Plus, Pencil, ArrowRightCircle, Search, Trash2 } from 'lucide-react';
+import { QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, SERVICE_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
 const emptyForm = {
@@ -23,6 +23,8 @@ const emptyForm = {
   start_date: '', end_date: '', sessions_count: 1, quoted_value: 0,
   status: 'recebido' as string, source_channel: '', notes: '',
 };
+
+const emptyItem = { service_type: 'interprete_libras' as string, description: '', quantity: 1, unit: '', unit_value: 0, total_value: 0, is_recurring: false, notes: '' };
 
 export default function Quotes() {
   const { user } = useAuth();
@@ -34,6 +36,11 @@ export default function Quotes() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  // Budget items
+  const [budgetItems, setBudgetItems] = useState<any[]>([]);
+  const [itemOpen, setItemOpen] = useState(false);
+  const [itemForm, setItemForm] = useState(emptyItem);
+  const [itemQuoteId, setItemQuoteId] = useState('');
 
   useEffect(() => { load(); loadClients(); }, []);
 
@@ -47,12 +54,22 @@ export default function Quotes() {
     setClients(data || []);
   };
 
+  const loadItems = async (quoteId: string) => {
+    const { data } = await supabase.from('budget_items').select('*').eq('quote_id', quoteId).order('created_at');
+    setBudgetItems(data || []);
+  };
+
   const handleSave = async () => {
-    if (!form.client_id || !form.event_name) {
-      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
-      return;
+    if (!form.event_name) {
+      toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
     }
-    const payload = { ...form, sessions_count: Number(form.sessions_count), quoted_value: Number(form.quoted_value), status: form.status as QuoteStatus };
+    const payload = {
+      ...form,
+      client_id: form.client_id || null,
+      sessions_count: Number(form.sessions_count),
+      quoted_value: Number(form.quoted_value),
+      status: form.status as QuoteStatus,
+    };
     if (editing) {
       const { error } = await supabase.from('event_quotes').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' }); return; }
@@ -67,24 +84,49 @@ export default function Quotes() {
   const openEdit = (q: any) => {
     setEditing(q);
     setForm({
-      client_id: q.client_id, event_name: q.event_name, event_type: q.event_type || '',
+      client_id: q.client_id || '', event_name: q.event_name, event_type: q.event_type || '',
       venue: q.venue || '', start_date: q.start_date || '', end_date: q.end_date || '',
       sessions_count: q.sessions_count || 1, quoted_value: q.quoted_value || 0,
       status: q.status, source_channel: q.source_channel || '', notes: q.notes || '',
     });
     setOpen(true);
+    loadItems(q.id);
   };
 
   const convertToEvent = async (q: any) => {
     const { error } = await supabase.from('events').insert({
-      client_id: q.client_id, quote_id: q.id, event_name: q.event_name,
+      client_id: q.client_id || null, quote_id: q.id, event_name: q.event_name,
       venue: q.venue, contract_value: q.quoted_value, start_date: q.start_date,
       end_date: q.end_date, created_by: user?.id,
     });
     if (error) { toast({ title: 'Erro ao converter', description: error.message, variant: 'destructive' }); return; }
-    await supabase.from('event_quotes').update({ status: 'aprovado' }).eq('id', q.id);
+    await supabase.from('event_quotes').update({ status: 'aprovado' as QuoteStatus }).eq('id', q.id);
     toast({ title: 'Evento criado a partir do orçamento!' });
     load();
+  };
+
+  const handleSaveItem = async () => {
+    if (!itemQuoteId) return;
+    const payload = {
+      quote_id: itemQuoteId,
+      service_type: itemForm.service_type as any,
+      description: itemForm.description || null,
+      quantity: Number(itemForm.quantity),
+      unit: itemForm.unit || null,
+      unit_value: Number(itemForm.unit_value),
+      total_value: Number(itemForm.quantity) * Number(itemForm.unit_value),
+      is_recurring: itemForm.is_recurring,
+      notes: itemForm.notes || null,
+    };
+    const { error } = await supabase.from('budget_items').insert(payload);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Item adicionado' });
+    setItemOpen(false); setItemForm(emptyItem); loadItems(itemQuoteId);
+  };
+
+  const deleteItem = async (id: string) => {
+    await supabase.from('budget_items').delete().eq('id', id);
+    if (itemQuoteId) loadItems(itemQuoteId);
   };
 
   const filtered = quotes.filter(q => {
@@ -94,11 +136,13 @@ export default function Quotes() {
     return matchSearch && matchStatus;
   });
 
+  const itemsTotal = budgetItems.reduce((s, i) => s + Number(i.total_value || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Orçamentos</h1>
-        <Button onClick={() => { setEditing(null); setForm(emptyForm); setOpen(true); }}>
+        <Button onClick={() => { setEditing(null); setForm(emptyForm); setBudgetItems([]); setOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" /> Novo Orçamento
         </Button>
       </div>
@@ -134,7 +178,7 @@ export default function Quotes() {
               {filtered.map(q => (
                 <TableRow key={q.id}>
                   <TableCell className="font-medium">{q.event_name}</TableCell>
-                  <TableCell>{(q.clients as any)?.name}</TableCell>
+                  <TableCell>{(q.clients as any)?.name || '—'}</TableCell>
                   <TableCell>R$ {Number(q.quoted_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {q.start_date ? format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yy') : '—'}
@@ -167,16 +211,16 @@ export default function Quotes() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Cliente *</Label>
+                <Label>Cliente (opcional)</Label>
                 <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem cliente</SelectItem>
+                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Nome do Evento *</Label>
-                <Input value={form.event_name} onChange={e => setForm({ ...form, event_name: e.target.value })} />
-              </div>
+              <div><Label>Nome do Evento *</Label><Input value={form.event_name} onChange={e => setForm({ ...form, event_name: e.target.value })} /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div><Label>Tipo do Evento</Label><Input value={form.event_type} onChange={e => setForm({ ...form, event_type: e.target.value })} /></div>
@@ -199,10 +243,74 @@ export default function Quotes() {
               <div><Label>Canal de Origem</Label><Input value={form.source_channel} onChange={e => setForm({ ...form, source_channel: e.target.value })} placeholder="WhatsApp, E-mail..." /></div>
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+
+            {/* Budget Items */}
+            {editing && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Itens do Orçamento</Label>
+                  <Button size="sm" variant="outline" onClick={() => { setItemQuoteId(editing.id); setItemForm(emptyItem); setItemOpen(true); }}>
+                    <Plus className="h-3 w-3 mr-1" /> Item
+                  </Button>
+                </div>
+                {budgetItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum item adicionado.</p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {budgetItems.map(item => (
+                        <div key={item.id} className="flex items-center justify-between p-2 rounded border text-sm">
+                          <div>
+                            <Badge variant="outline" className="mr-2">{SERVICE_TYPE_LABELS[item.service_type] || item.service_type}</Badge>
+                            <span className="text-muted-foreground">{item.description || ''} • Qtd: {item.quantity} × R$ {Number(item.unit_value).toFixed(2)}</span>
+                            {item.is_recurring && <Badge variant="secondary" className="ml-2 text-xs">Recorrente</Badge>}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">R$ {Number(item.total_value || 0).toFixed(2)}</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteItem(item.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm font-medium text-right">Total dos Itens: R$ {itemsTotal.toFixed(2)}</p>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Item Dialog */}
+      <Dialog open={itemOpen} onOpenChange={setItemOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Adicionar Item</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div>
+              <Label>Tipo de Serviço</Label>
+              <Select value={itemForm.service_type} onValueChange={v => setItemForm({ ...itemForm, service_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><Label>Descrição</Label><Input value={itemForm.description} onChange={e => setItemForm({ ...itemForm, description: e.target.value })} /></div>
+            <div className="grid grid-cols-3 gap-4">
+              <div><Label>Quantidade</Label><Input type="number" min={1} value={itemForm.quantity} onChange={e => setItemForm({ ...itemForm, quantity: Number(e.target.value) })} /></div>
+              <div><Label>Unidade</Label><Input value={itemForm.unit} onChange={e => setItemForm({ ...itemForm, unit: e.target.value })} placeholder="h, dia, un..." /></div>
+              <div><Label>Valor Unitário</Label><Input type="number" step="0.01" value={itemForm.unit_value} onChange={e => setItemForm({ ...itemForm, unit_value: Number(e.target.value) })} /></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={itemForm.is_recurring} onChange={e => setItemForm({ ...itemForm, is_recurring: e.target.checked })} />
+              <Label>Cobrança recorrente</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setItemOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveItem}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button';
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Clientes', url: '/clientes', icon: Users },
-  { title: 'Intérpretes', url: '/interpretes', icon: Mic },
+  { title: 'Profissionais', url: '/interpretes', icon: Mic },
   { title: 'Orçamentos', url: '/orcamentos', icon: FileText },
   { title: 'Eventos', url: '/eventos', icon: Calendar },
-  { title: 'Sessões', url: '/sessoes', icon: Layers },
+  { title: 'Agenda', url: '/agenda', icon: Layers },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
@@ -40,7 +40,7 @@ export function AppSidebar() {
             </div>
             <div>
               <h2 className="text-sm font-bold text-sidebar-foreground">Nosso Mundo Gestão</h2>
-              <p className="text-xs text-sidebar-foreground/60">Gestão de Eventos</p>
+              <p className="text-xs text-sidebar-foreground/60">Gestão de Acessibilidade</p>
             </div>
           </div>
         )}

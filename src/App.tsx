@@ -11,7 +11,7 @@ import Clients from "./pages/Clients";
 import Interpreters from "./pages/Interpreters";
 import Quotes from "./pages/Quotes";
 import Events from "./pages/Events";
-import Sessions from "./pages/Sessions";
+import Agenda from "./pages/Sessions";
 import Finance from "./pages/Finance";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
@@ -49,7 +49,7 @@ const App = () => (
               <Route path="/interpretes" element={<Interpreters />} />
               <Route path="/orcamentos" element={<Quotes />} />
               <Route path="/eventos" element={<Events />} />
-              <Route path="/sessoes" element={<Sessions />} />
+              <Route path="/agenda" element={<Agenda />} />
               <Route path="/financeiro" element={<Finance />} />
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
