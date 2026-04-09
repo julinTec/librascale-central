@@ -15,6 +15,7 @@ import Agenda from "./pages/Sessions";
 import Finance from "./pages/Finance";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
+import DashboardGerencial from "./pages/DashboardGerencial";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/financeiro" element={<Finance />} />
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/dashboard-gerencial" element={<DashboardGerencial />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
