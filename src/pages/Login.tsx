@@ -50,8 +50,8 @@ export default function Login() {
             <Mic className="w-8 h-8 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Nosso Mundo Gestão</CardTitle>
-            <CardDescription>Gestão de Acessibilidade de Libras</CardDescription>
+            <CardTitle className="text-2xl">Nosso Mundo</CardTitle>
+            <CardDescription>Gestão de Eventos</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
