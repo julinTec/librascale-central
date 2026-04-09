@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ROLE_LABELS } from '@/lib/constants';
-import { UserPlus, Trash2, Pencil, Plus } from 'lucide-react';
+import { UserPlus, Trash2, Pencil, Plus, Database, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const API_BASE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-api`;
+
+const TABLES = [
+  'clients', 'interpreters', 'events', 'event_sessions', 'event_assignments',
+  'event_services', 'event_quotes', 'budget_items', 'event_receivables',
+  'event_payables', 'event_expenses', 'schedules', 'execution_logs',
+  'incidents', 'contract_hours', 'period_closings', 'tax_settings',
+];
 
 export default function SettingsPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -27,6 +36,9 @@ export default function SettingsPage() {
   const [taxOpen, setTaxOpen] = useState(false);
   const [taxForm, setTaxForm] = useState({ name: 'Simples Nacional', percentage: 6, is_default: true });
   const [editingTax, setEditingTax] = useState<any>(null);
+
+  // API copy
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (role === 'admin') loadUsers();
@@ -94,6 +106,13 @@ export default function SettingsPage() {
     }
     toast({ title: editingTax ? 'Imposto atualizado' : 'Imposto criado' });
     setTaxOpen(false); setEditingTax(null); setTaxForm({ name: 'Simples Nacional', percentage: 6, is_default: true }); loadTaxSettings();
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+    toast({ title: 'Copiado!', description: `URL de ${label} copiada.` });
   };
 
   const isCurrentUser = (userId: string) => session?.user?.id === userId;
@@ -228,6 +247,48 @@ export default function SettingsPage() {
               </TableBody>
             </Table>
           )}
+        </CardContent>
+      </Card>
+
+      {/* API Pública */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Database className="h-5 w-5" /> API Pública de Dados
+          </CardTitle>
+          <CardDescription>
+            Use estas URLs como fonte de dados "Web" no Power BI (Get Data → Web). A API é pública, sem autenticação.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <code className="text-sm flex-1 break-all text-foreground">{API_BASE}</code>
+              <Button variant="ghost" size="icon" onClick={() => copyToClipboard(API_BASE, 'base')}>
+                {copied === 'base' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Parâmetros: <code className="text-xs bg-muted px-1 rounded">?table=nome</code>{' '}
+              <code className="text-xs bg-muted px-1 rounded">&limit=1000</code>{' '}
+              <code className="text-xs bg-muted px-1 rounded">&offset=0</code>
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-4">
+              {TABLES.map((t) => {
+                const url = `${API_BASE}?table=${t}`;
+                return (
+                  <div key={t} className="flex items-center justify-between p-2 border border-border rounded-md text-sm">
+                    <span className="font-mono text-foreground">{t}</span>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(url, t)}>
+                      {copied === t ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
