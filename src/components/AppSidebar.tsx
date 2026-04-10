@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Mic, FileText, Calendar, Layers,
-  DollarSign, BarChart3, Settings, LogOut,
+  DollarSign, BarChart3, Settings, LogOut, PieChart,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
