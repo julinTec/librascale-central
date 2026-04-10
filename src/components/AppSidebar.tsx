@@ -21,8 +21,8 @@ const menuItems = [
   { title: 'Agenda', url: '/agenda', icon: Layers },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-  { title: 'Configurações', url: '/configuracoes', icon: Settings },
   { title: 'Dashboard Gerencial', url: '/dashboard-gerencial', icon: BarChart3 },
+  { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
 
 export function AppSidebar() {
