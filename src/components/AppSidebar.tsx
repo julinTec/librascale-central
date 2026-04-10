@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Mic, FileText, Calendar, Layers,
-  DollarSign, BarChart3, Settings, LogOut,
+  DollarSign, BarChart3, Settings, LogOut, PieChart,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -21,7 +21,7 @@ const menuItems = [
   { title: 'Agenda', url: '/agenda', icon: Layers },
   { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
-  { title: 'Dashboard Gerencial', url: '/dashboard-gerencial', icon: BarChart3 },
+  { title: 'Dashboard Gerencial', url: '/dashboard-gerencial', icon: PieChart },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
 
