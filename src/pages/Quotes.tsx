@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type QuoteStatus = Database['public']['Enums']['quote_status'];
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,9 +14,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, ArrowRightCircle, Search, Trash2 } from 'lucide-react';
+import { Plus, Pencil, ArrowRightCircle, Search, Trash2, FileDown } from 'lucide-react';
 import { QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, SERVICE_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -36,11 +39,11 @@ export default function Quotes() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  // Budget items
   const [budgetItems, setBudgetItems] = useState<any[]>([]);
   const [itemOpen, setItemOpen] = useState(false);
   const [itemForm, setItemForm] = useState(emptyItem);
   const [itemQuoteId, setItemQuoteId] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => { load(); loadClients(); }, []);
 
@@ -103,6 +106,60 @@ export default function Quotes() {
     await supabase.from('event_quotes').update({ status: 'aprovado' as QuoteStatus }).eq('id', q.id);
     toast({ title: 'Evento criado a partir do orçamento!' });
     load();
+  };
+
+  const deleteQuote = async (id: string) => {
+    await supabase.from('budget_items').delete().eq('quote_id', id);
+    const { error } = await supabase.from('event_quotes').delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Orçamento excluído' });
+      load();
+    }
+    setDeleteId(null);
+  };
+
+  const exportPDF = async (q: any) => {
+    const { data: items } = await supabase.from('budget_items').select('*').eq('quote_id', q.id).order('created_at');
+    const doc = new jsPDF();
+    const clientName = (q.clients as any)?.name || 'Sem cliente';
+
+    doc.setFontSize(18);
+    doc.text('Orçamento', 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Evento: ${q.event_name}`, 14, 30);
+    doc.text(`Cliente: ${clientName}`, 14, 37);
+    if (q.venue) doc.text(`Local: ${q.venue}`, 14, 44);
+    const yAfterHeader = q.venue ? 51 : 44;
+    if (q.start_date) {
+      const period = `Período: ${format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yyyy')}${q.end_date ? ' - ' + format(new Date(q.end_date + 'T12:00:00'), 'dd/MM/yyyy') : ''}`;
+      doc.text(period, 14, yAfterHeader);
+    }
+    doc.text(`Status: ${QUOTE_STATUS_LABELS[q.status] || q.status}`, 14, yAfterHeader + 7);
+    doc.text(`Valor Orçado: R$ ${Number(q.quoted_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, yAfterHeader + 14);
+
+    if (items && items.length > 0) {
+      const total = items.reduce((s: number, i: any) => s + Number(i.total_value || 0), 0);
+      autoTable(doc, {
+        startY: yAfterHeader + 22,
+        head: [['Serviço', 'Descrição', 'Qtd', 'Unidade', 'Valor Unit.', 'Total']],
+        body: items.map((i: any) => [
+          SERVICE_TYPE_LABELS[i.service_type] || i.service_type,
+          i.description || '',
+          i.quantity,
+          i.unit || '',
+          `R$ ${Number(i.unit_value).toFixed(2)}`,
+          `R$ ${Number(i.total_value).toFixed(2)}`,
+        ]),
+        foot: [['', '', '', '', 'Total:', `R$ ${total.toFixed(2)}`]],
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      });
+    }
+
+    doc.save(`orcamento-${q.event_name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   };
 
   const handleSaveItem = async () => {
@@ -171,7 +228,7 @@ export default function Quotes() {
                 <TableHead>Valor</TableHead>
                 <TableHead>Período</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[120px]">Ações</TableHead>
+                <TableHead className="w-[160px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,12 +244,16 @@ export default function Quotes() {
                   <TableCell><Badge className={QUOTE_STATUS_COLORS[q.status]}>{QUOTE_STATUS_LABELS[q.status]}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(q)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(q)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" title="Exportar PDF" onClick={() => exportPDF(q)}><FileDown className="h-4 w-4" /></Button>
                       {(q.status === 'enviado' || q.status === 'aprovado') && (
                         <Button variant="ghost" size="icon" title="Converter em Evento" onClick={() => convertToEvent(q)}>
                           <ArrowRightCircle className="h-4 w-4 text-success" />
                         </Button>
                       )}
+                      <Button variant="ghost" size="icon" title="Excluir" onClick={() => setDeleteId(q.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -204,6 +265,24 @@ export default function Quotes() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir orçamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O orçamento e todos os seus itens serão removidos permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteId && deleteQuote(deleteId)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -244,7 +323,6 @@ export default function Quotes() {
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
 
-            {/* Budget Items */}
             {editing && (
               <div className="border-t pt-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -285,7 +363,6 @@ export default function Quotes() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Item Dialog */}
       <Dialog open={itemOpen} onOpenChange={setItemOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Adicionar Item</DialogTitle></DialogHeader>
