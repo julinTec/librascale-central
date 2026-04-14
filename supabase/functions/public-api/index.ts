@@ -40,15 +40,15 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const table = url.searchParams.get("table");
-    const limit = Math.min(parseInt(url.searchParams.get("limit") || "1000", 10), 10000);
-    const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+    const limitParam = url.searchParams.get("limit");
+    const offsetParam = url.searchParams.get("offset");
 
     // If no table specified, return list of available tables
     if (!table) {
       return new Response(
         JSON.stringify({
           available_tables: ALLOWED_TABLES,
-          usage: "Add ?table=<table_name> to fetch data. Optional: &limit=1000&offset=0",
+          usage: "Add ?table=<table_name> to fetch data. Optional: &limit=100&offset=0",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -66,15 +66,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data, error, count } = await supabase
-      .from(table)
-      .select("*", { count: "exact" })
-      .range(offset, offset + limit - 1);
+    let query = supabase.from(table).select("*", { count: "exact" });
+
+    if (limitParam) {
+      const limit = parseInt(limitParam, 10);
+      const offset = parseInt(offsetParam || "0", 10);
+      query = query.range(offset, offset + limit - 1);
+    }
+
+    const { data, error, count } = await query;
 
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ table, total: count, limit, offset, data }),
+      JSON.stringify({ table, total: count, rows_returned: data?.length ?? 0, data }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
