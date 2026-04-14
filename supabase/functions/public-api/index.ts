@@ -74,10 +74,12 @@ Deno.serve(async (req) => {
       query = query.range(offset, offset + limit - 1);
     }
 
+    const { data, error, count } = await query;
+
     if (error) throw error;
 
     return new Response(
-      JSON.stringify({ table, total: count, limit, offset, data }),
+      JSON.stringify({ table, total: count, rows_returned: data?.length ?? 0, data }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
