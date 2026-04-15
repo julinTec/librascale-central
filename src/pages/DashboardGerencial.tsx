@@ -1,58 +1,31 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart3 } from 'lucide-react';
+
+const POWER_BI_URL =
+  'https://app.powerbi.com/view?r=eyJrIjoiYTQ4YzUxY2QtMjA3ZS00YjZhLWI0MTMtYTYzY2M0MTI5MDZmIiwidCI6ImViYzMxZTJiLWE5OTYtNGQ4MS04NzIwLWRjNWNkYWQ4YzNmYyJ9';
 
 export default function DashboardGerencial() {
-  const [embedUrl, setEmbedUrl] = useState('');
-  const [showEmbed, setShowEmbed] = useState(false);
-  const { toast } = useToast();
-
-  const handleEmbed = () => {
-    if (!embedUrl.trim()) {
-      toast({ title: 'Informe a URL', description: 'Cole a URL de embed do Power BI.', variant: 'destructive' });
-      return;
-    }
-    setShowEmbed(true);
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard Gerencial</h1>
-        <p className="text-muted-foreground">Visualize seus relatórios Power BI diretamente no sistema.</p>
+        <p className="text-muted-foreground">Relatórios e indicadores de gestão.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5" /> Relatório Power BI
+      <Card className="overflow-hidden">
+        <CardHeader className="py-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-5 w-5" /> Relatório Power BI
           </CardTitle>
-          <CardDescription>Cole abaixo a URL de embed do seu relatório Power BI para visualizá-lo aqui.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://app.powerbi.com/reportEmbed?reportId=..."
-              value={embedUrl}
-              onChange={(e) => { setEmbedUrl(e.target.value); setShowEmbed(false); }}
-              className="flex-1"
-            />
-            <Button onClick={handleEmbed}>Carregar</Button>
-          </div>
-          {showEmbed && (
-            <div className="mt-4 rounded-lg overflow-hidden border border-border" style={{ height: '70vh' }}>
-              <iframe
-                title="Power BI Report"
-                src={embedUrl}
-                className="w-full h-full"
-                frameBorder="0"
-                allowFullScreen
-              />
-            </div>
-          )}
+        <CardContent className="p-0">
+          <iframe
+            title="Power BI Report"
+            src={POWER_BI_URL}
+            className="w-full border-0"
+            style={{ height: 'calc(100vh - 200px)', minHeight: '500px' }}
+            allowFullScreen
+          />
         </CardContent>
       </Card>
     </div>
