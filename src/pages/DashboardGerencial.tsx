@@ -6,12 +6,7 @@ const POWER_BI_URL =
 
 export default function DashboardGerencial() {
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard Gerencial</h1>
-        <p className="text-muted-foreground">Relatórios e indicadores de gestão.</p>
-      </div>
-
+    <div>
       <Card className="overflow-hidden">
         <CardHeader className="py-3">
           <CardTitle className="flex items-center gap-2 text-base">
