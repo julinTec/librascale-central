@@ -46,8 +46,15 @@ export default function SettingsPage() {
   }, [role]);
 
   const loadUsers = async () => {
-    const { data } = await supabase.from('profiles').select('*, user_roles(role)');
-    if (data) setUsers(data);
+    const [{ data: profiles }, { data: roles }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.from('user_roles').select('user_id, role'),
+    ]);
+    const merged = (profiles || []).map(p => ({
+      ...p,
+      user_roles: roles?.filter(r => r.user_id === p.id) || [],
+    }));
+    setUsers(merged);
   };
 
   const loadTaxSettings = async () => {
