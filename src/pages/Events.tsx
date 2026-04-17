@@ -194,10 +194,10 @@ export default function Events() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cliente (opcional)</Label>
-                <Select value={form.client_id} onValueChange={v => setForm({ ...form, client_id: v })}>
+                <Select value={form.client_id || '__none__'} onValueChange={v => setForm({ ...form, client_id: v === '__none__' ? '' : v })}>
                   <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem cliente</SelectItem>
+                    <SelectItem value="__none__">Sem cliente</SelectItem>
                     {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>

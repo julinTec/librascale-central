@@ -288,10 +288,10 @@ export default function Finance() {
             </div>
             <div>
               <Label>Cliente (opcional)</Label>
-              <Select value={recForm.client_id} onValueChange={v => setRecForm({ ...recForm, client_id: v })}>
+              <Select value={recForm.client_id || '__none__'} onValueChange={v => setRecForm({ ...recForm, client_id: v === '__none__' ? '' : v })}>
                 <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem cliente</SelectItem>
+                  <SelectItem value="__none__">Sem cliente</SelectItem>
                   {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -330,10 +330,10 @@ export default function Finance() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Profissional</Label>
-                <Select value={payForm.interpreter_id} onValueChange={v => setPayForm({ ...payForm, interpreter_id: v })}>
+                <Select value={payForm.interpreter_id || '__none__'} onValueChange={v => setPayForm({ ...payForm, interpreter_id: v === '__none__' ? '' : v })}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="__none__">Nenhum</SelectItem>
                     {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
                   </SelectContent>
                 </Select>
