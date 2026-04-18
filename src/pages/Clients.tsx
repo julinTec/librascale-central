@@ -75,6 +75,18 @@ export default function Clients() {
 
   const openNew = () => { setEditing(null); setForm(emptyClient); setOpen(true); };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase.from('clients').delete().eq('id', deleteTarget.id);
+    if (error) {
+      toast({ title: 'Erro ao excluir', description: error.message + ' (verifique se há eventos/agendas vinculados)', variant: 'destructive' });
+    } else {
+      toast({ title: 'Cliente excluído' });
+      loadClients();
+    }
+    setDeleteTarget(null);
+  };
+
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.trade_name?.toLowerCase() || '').includes(search.toLowerCase())
