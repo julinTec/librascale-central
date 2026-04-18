@@ -77,11 +77,11 @@ export default function Clients() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const { error } = await supabase.from('clients').delete().eq('id', deleteTarget.id);
+    const { error } = await supabase.rpc('delete_client_cascade' as any, { _client_id: deleteTarget.id });
     if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message + ' (verifique se há eventos/agendas vinculados)', variant: 'destructive' });
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Cliente excluído' });
+      toast({ title: 'Cliente e vínculos excluídos' });
       loadClients();
     }
     setDeleteTarget(null);
