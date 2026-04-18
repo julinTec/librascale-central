@@ -146,44 +146,194 @@ export default function Quotes() {
 
   const exportPDF = async (q: any) => {
     const { data: items } = await supabase.from('budget_items').select('*').eq('quote_id', q.id).order('created_at');
-    const doc = new jsPDF();
-    const clientName = (q.clients as any)?.name || 'Sem cliente';
+    const parsed = parseNotes(q.notes);
+    const clientName = (q.clients as any)?.name || '';
+    const ac = parsed.ac || '';
+    const paymentTerms = parsed.payment || 'A combinar com o cliente, conforme nota fiscal emitida.';
+    const observations = parsed.obs || '';
 
-    doc.setFontSize(18);
-    doc.text('Orçamento', 14, 20);
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const PURPLE: [number, number, number] = [107, 63, 160];
+    const TURQUOISE: [number, number, number] = [63, 184, 175];
+    const TEXT: [number, number, number] = [51, 51, 51];
+    const SUBTLE: [number, number, number] = [102, 102, 102];
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 18;
+    const contentW = pageW - marginX * 2;
+
+    const drawChrome = () => {
+      // top purple bar
+      doc.setFillColor(...PURPLE);
+      doc.rect(0, 0, pageW, 8, 'F');
+      // bottom turquoise bar
+      doc.setFillColor(...TURQUOISE);
+      doc.rect(0, pageH - 8, pageW, 8, 'F');
+      // footer text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...SUBTLE);
+      doc.text('Documento otimizado para impressão e acessibilidade.', pageW / 2, pageH - 11, { align: 'center' });
+    };
+
+    const ensureSpace = (needed: number, currentY: number): number => {
+      if (currentY + needed > pageH - 18) {
+        doc.addPage();
+        drawChrome();
+        return 22;
+      }
+      return currentY;
+    };
+
+    const addParagraph = (text: string, y: number, opts: { size?: number; color?: [number, number, number]; bold?: boolean; align?: 'left' | 'center' | 'justify' } = {}): number => {
+      const size = opts.size ?? 10.5;
+      const color = opts.color ?? TEXT;
+      doc.setFont('helvetica', opts.bold ? 'bold' : 'normal');
+      doc.setFontSize(size);
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, contentW);
+      const lineH = size * 0.45;
+      let cy = y;
+      for (const line of lines) {
+        cy = ensureSpace(lineH + 1, cy);
+        if (opts.align === 'center') {
+          doc.text(line, pageW / 2, cy, { align: 'center' });
+        } else {
+          doc.text(line, marginX, cy);
+        }
+        cy += lineH + 1;
+      }
+      return cy + 1;
+    };
+
+    const addSection = (num: number, title: string, body: string, y: number): number => {
+      let cy = ensureSpace(14, y) + 4;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12.5);
+      doc.setTextColor(...PURPLE);
+      doc.text(`${num}. ${title}`, marginX, cy);
+      cy += 6;
+      if (body) cy = addParagraph(body, cy);
+      return cy;
+    };
+
+    // === PAGE 1 ===
+    drawChrome();
+
+    // Logo centered
+    try {
+      const logoW = 45;
+      const logoH = (128 / 226) * logoW;
+      doc.addImage(logoNossoMundo, 'JPEG', (pageW - logoW) / 2, 14, logoW, logoH);
+    } catch { /* ignore */ }
+
+    let y = 14 + (128 / 226) * 45 + 8;
+
+    // Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...PURPLE);
+    doc.text('Proposta Comercial', pageW / 2, y, { align: 'center' });
+    y += 8;
+
+    // Subtitle: A/C + cliente
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text(`Evento: ${q.event_name}`, 14, 30);
-    doc.text(`Cliente: ${clientName}`, 14, 37);
-    if (q.venue) doc.text(`Local: ${q.venue}`, 14, 44);
-    const yAfterHeader = q.venue ? 51 : 44;
+    doc.setTextColor(...SUBTLE);
+    const subtitleParts: string[] = [];
+    if (ac) subtitleParts.push(`A/C ${ac}`);
+    if (clientName) subtitleParts.push(clientName);
+    const subtitle = subtitleParts.join(' — ') || q.event_name;
+    doc.text(subtitle, pageW / 2, y, { align: 'center' });
+    y += 10;
+
+    // Section 1 — Apresentação
+    const apresentacao =
+      'A Nosso Mundo - Diversidade e Inclusão é uma empresa especializada em acessibilidade comunicacional, ' +
+      'oferecendo serviços de interpretação em Libras, audiodescrição, legendagem e consultoria em inclusão. ' +
+      'Atuamos com profissionais qualificados e equipamentos próprios, garantindo qualidade técnica e ' +
+      'humanização em cada projeto. Nossa missão é tornar eventos, conteúdos e ambientes verdadeiramente ' +
+      'acessíveis para todas as pessoas.';
+    y = addSection(1, 'Apresentação', apresentacao, y);
+
+    // Section 2 — Escopo do Serviço
+    const escopoLines: string[] = [];
+    escopoLines.push(`Evento: ${q.event_name}`);
+    if (q.event_type) escopoLines.push(`Tipo: ${q.event_type}`);
+    if (q.venue) escopoLines.push(`Local: ${q.venue}`);
+    if (q.sessions_count) escopoLines.push(`Quantidade de sessões: ${q.sessions_count}`);
+    if (observations) escopoLines.push('', observations);
+    y = addSection(2, 'Escopo do Serviço', escopoLines.join('\n'), y);
+
+    // Section 3 — Cronograma
+    let cronograma = 'A definir conforme alinhamento com o cliente.';
     if (q.start_date) {
-      const period = `Período: ${format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yyyy')}${q.end_date ? ' - ' + format(new Date(q.end_date + 'T12:00:00'), 'dd/MM/yyyy') : ''}`;
-      doc.text(period, 14, yAfterHeader);
+      const ini = format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yyyy');
+      const fim = q.end_date ? format(new Date(q.end_date + 'T12:00:00'), 'dd/MM/yyyy') : null;
+      cronograma = fim && fim !== ini
+        ? `Período de execução: ${ini} a ${fim}.`
+        : `Data de execução: ${ini}.`;
     }
-    doc.text(`Status: ${QUOTE_STATUS_LABELS[q.status] || q.status}`, 14, yAfterHeader + 7);
-    doc.text(`Valor Orçado: R$ ${Number(q.quoted_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 14, yAfterHeader + 14);
+    y = addSection(3, 'Cronograma', cronograma, y);
+
+    // Section 4 — Investimento
+    y = ensureSpace(20, y) + 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12.5);
+    doc.setTextColor(...PURPLE);
+    doc.text('4. Investimento', marginX, y);
+    y += 6;
+
+    const totalItems = (items || []).reduce((s: number, i: any) => s + Number(i.total_value || 0), 0);
+    const totalValor = totalItems > 0 ? totalItems : Number(q.quoted_value || 0);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
+    doc.setTextColor(...TEXT);
+    doc.text(
+      `Valor total: R$ ${totalValor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      marginX, y
+    );
+    y += 6;
 
     if (items && items.length > 0) {
-      const total = items.reduce((s: number, i: any) => s + Number(i.total_value || 0), 0);
       autoTable(doc, {
-        startY: yAfterHeader + 22,
-        head: [['Serviço', 'Descrição', 'Qtd', 'Unidade', 'Valor Unit.', 'Total']],
+        startY: y,
+        margin: { left: marginX, right: marginX, bottom: 18 },
+        head: [['Serviço', 'Descrição', 'Qtd', 'Un.', 'Valor Unit.', 'Total']],
         body: items.map((i: any) => [
           SERVICE_TYPE_LABELS[i.service_type] || i.service_type,
           i.description || '',
-          i.quantity,
+          String(i.quantity),
           i.unit || '',
-          `R$ ${Number(i.unit_value).toFixed(2)}`,
-          `R$ ${Number(i.total_value).toFixed(2)}`,
+          `R$ ${Number(i.unit_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          `R$ ${Number(i.total_value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
         ]),
-        foot: [['', '', '', '', 'Total:', `R$ ${total.toFixed(2)}`]],
+        foot: [['', '', '', '', 'Total:', `R$ ${totalItems.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`]],
         theme: 'grid',
-        headStyles: { fillColor: [59, 130, 246] },
-        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 2.5, textColor: TEXT },
+        headStyles: { fillColor: PURPLE, textColor: [255, 255, 255], fontStyle: 'bold' },
+        footStyles: { fillColor: [240, 235, 248], textColor: PURPLE, fontStyle: 'bold' },
+        didDrawPage: () => drawChrome(),
       });
+      y = (doc as any).lastAutoTable.finalY + 6;
     }
 
-    doc.save(`orcamento-${q.event_name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
+    // Section 5 — Condições de Pagamento
+    y = addSection(5, 'Condições de Pagamento', paymentTerms, y);
+
+    // Section 6 — Validade da Proposta
+    const validade = `Esta proposta tem validade de 15 (quinze) dias a partir de ${format(new Date(), 'dd/MM/yyyy')}.`;
+    y = addSection(6, 'Validade da Proposta', validade, y);
+
+    // Section 7 — Contato
+    const contato =
+      'Jefferson Rosa\n' +
+      'Nosso Mundo — Diversidade e Inclusão\n' +
+      'E-mail: contato@nossomundoinclusao.com.br';
+    y = addSection(7, 'Informações de Contato', contato, y);
+
+    doc.save(`proposta-${q.event_name.replace(/\s+/g, '-').toLowerCase()}.pdf`);
   };
 
   const handleSaveItem = async () => {
