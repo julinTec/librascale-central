@@ -2,52 +2,83 @@
 
 ## Análise
 
-Verifiquei `Reports.tsx` + schema. Encontrei 3 problemas reais nos cálculos e 1 melhoria pedida (export).
+O PDF anexo (Vanzolini/DETRAN) define o template visual padrão que todos os orçamentos devem seguir ao serem exportados. Comparando com o `exportPDF` atual em `src/pages/Quotes.tsx`, hoje gerado é um PDF "cru" (cabeçalho azul, tabela de itens) sem identidade visual.
 
-### Problemas nos cálculos
+### Elementos do template a reproduzir
 
-**1. "Receita Líquida" vazia em Lucro por Evento** — A query de receivables não filtra por período e usa `competence_date` implícito, mas o filtro do relatório é por `events.start_date`. Resultado: se a receita foi criada mas o `status` ainda não é `'recebido'`, ou se o `net_amount` não foi gravado (registros antigos), o valor aparece R$ 0.
+1. **Faixa superior roxa** (cor ~ `#6B3FA0`) ocupando ~3% da altura
+2. **Logo "Nosso Mundo - Diversidade e Inclusão"** centralizada no topo (extraída do próprio PDF)
+3. **Título "Proposta Comercial"** em roxo, centralizado, fonte grande (~22pt)
+4. **Subtítulo "A/C [contato] - [cliente]"** centralizado, cinza
+5. **Seções numeradas** com títulos roxos em negrito:
+   - 1. Apresentação (texto institucional fixo)
+   - 2. Escopo do Serviço (descrição + período/local do orçamento)
+   - 3. Cronograma (período/datas)
+   - 4. Investimento (valor total por extenso + tabela de itens, se houver)
+   - 5. Condições de Pagamento (campo configurável)
+   - 6. Validade da Proposta (15 dias por padrão)
+   - 7. Informações de Contato (Jefferson Rosa)
+6. **Rodapé**: faixa inferior turquesa (~`#3FB8AF`) + linha "Documento otimizado para impressão e acessibilidade"
+7. Fonte sans-serif (Helvetica do jsPDF), texto justificado nos parágrafos
 
-Após o sync Evento→Receita que fizemos, vários receivables têm `amount` correto mas `net_amount=0` porque só recalculamos quando o usuário edita. Precisamos:
-- Mostrar **Receita Prevista (Líquida)** = `net_amount` se >0, senão `amount * (1 - tax%/100)` como fallback, independente do status.
-- Adicionar coluna separada **Recebido** para o que efetivamente entrou (`status='recebido'`).
-- Assim o usuário enxerga previsto vs realizado.
+### Campos novos necessários no orçamento
 
-**2. "Custos Pagos" só conta `status='pago'`** — Igual problema: custos pendentes/agendados ficam invisíveis e a coluna fica zerada para eventos novos. Vou exibir **Custos Previstos** (todos) e **Pagos** (status=pago) — duas colunas — e calcular **Lucro Previsto** = ReceitaLíquidaPrevista − CustosPrevistos.
+Para o "A/C" e "Condições de Pagamento" hoje não há campos dedicados. Solução **sem migração de DB**:
+- **A/C (atenção)**: usar um novo campo opcional `attention_to` armazenado no `notes` como prefixo `[AC: ...]`, OU pedir ao usuário no momento do export. **Mais simples**: adicionar input no form de orçamento mapeado ao `source_channel` reaproveitado? Não — vou reusar `notes` parseando `[AC: X]` e adicionar um campo dedicado **na UI** que grava em `notes` formatado. 
+  - **Decisão**: adicionar dois inputs visuais no form ("A/C - Pessoa de contato" e "Condições de pagamento") e persistir ambos como JSON dentro de `notes` (`{"ac":"...","payment":"...","obs":"..."}`). Retrocompatível: se `notes` não for JSON válido, tratar como texto livre em `obs`.
+- Validade fica fixa em 15 dias (texto padrão), mas exibida como "X dias a partir de DD/MM/AAAA".
 
-**3. "Lucro por Mês" usa só competence_date + status final** — Eventos sem competência ou sem baixa somem do mês. Vou:
-- Fallback: se `competence_date` for null, usar `due_date`, depois `start_date` do evento.
-- Criar duas séries: **Previsto** (todos) e **Realizado** (recebido/pago). Tabela mostra ambos + diferença.
+### Logo
 
-**4. "Pagamentos por Profissional" ignora período** — A query de `event_assignments` não tem filtro temporal. Vou juntar via `session_id → event_sessions.session_date` e filtrar pelo período selecionado.
-
-**5. "Receitas por Tipo" usa `amount` bruto** — Inconsistente com "Líquida" das outras tabelas. Vou usar `net_amount` (com fallback) para alinhar.
-
-### Export PDF + Excel
-
-Adicionar dois botões no topo da página (ao lado dos filtros):
-- **Exportar PDF**: usar `jspdf` + `jspdf-autotable` (já usado em `Closing.tsx`). Gera multi-página com cabeçalho do período e uma tabela por seção.
-- **Exportar Excel**: usar `xlsx` (SheetJS). Cria 1 arquivo com 5 abas (Lucro por Evento, Lucro por Mês, Custos por Tipo, Receitas por Tipo, Pagamentos por Profissional) + aba "Resumo" com período/total.
-
-Nome do arquivo: `relatorios_<periodo>.pdf` / `.xlsx` (ex: `relatorios_2026.xlsx` ou `relatorios_2026-04.xlsx`).
+Extrair `page_1_image_1_v2.jpg` do PDF anexo, salvar como `src/assets/logo-nosso-mundo.png`, importar no Quotes.tsx e embutir no PDF via `doc.addImage()` (base64).
 
 ## Implementação
 
-### `src/pages/Reports.tsx`
-- Reescrever `loadReports` com:
-  - `netExpected = net_amount > 0 ? net_amount : amount * (1 - tax_percentage/100)`
-  - Tabela "Lucro por Evento": colunas → Evento | Cliente | Contratado | **Receita Líquida (Prev.)** | **Recebido** | **Custos Prev.** | **Custos Pagos** | **Lucro Prev.**
-  - Tabela "Lucro por Mês": Mês | Receita Prev. | Recebido | Custos Prev. | Pagos | Lucro Prev. | Lucro Real
-  - Bucket de mês: `competence_date ?? due_date ?? evento.start_date`
-  - "Receitas por Tipo": somar `netExpected`
-  - "Pagamentos por Profissional": fazer join com `event_sessions` e filtrar `session_date` dentro do período
-- Header: 2 botões `Exportar PDF` (ícone FileDown) e `Exportar Excel` (ícone FileSpreadsheet)
-- Funções `exportPDF()` e `exportExcel()` que consomem os mesmos arrays já calculados no estado
+### Arquivos
 
-### Dependências
-- `jspdf` + `jspdf-autotable` — já no projeto (usado em Closing.tsx)
-- `xlsx` (SheetJS) — adicionar via `<lov-add-dependency>xlsx@latest</lov-add-dependency>`
+**1. `src/assets/logo-nosso-mundo.png`** (novo)
+- Copiar a logo extraída do PDF anexo
+
+**2. `src/pages/Quotes.tsx`** (editar)
+- Adicionar campos no formulário: `attention_to`, `payment_terms` (persistidos via JSON em `notes`)
+- Reescrever `exportPDF(q)`:
+  - Faixa roxa topo (rect filled `#6B3FA0`)
+  - Logo centralizada (~50mm largura)
+  - Título "Proposta Comercial" centralizado, roxo, 22pt
+  - Subtítulo "A/C ... - [cliente]"
+  - 7 seções numeradas com títulos roxos negrito 13pt + corpo 11pt justificado
+  - Tabela de itens dentro da seção 4 (autoTable com tema discreto, header roxo)
+  - Rodapé turquesa + texto pequeno
+  - Suporte a múltiplas páginas (verificar `doc.internal.pageSize.height` antes de cada bloco)
+- Helper `addSection(num, title, body)` para padronização
+- Texto da seção 1 (Apresentação) fica **fixo** no código
+- Seções 2/3/4/5/6/7 derivadas dos campos do orçamento + defaults
+
+### Cores e tipografia
+```text
+Roxo: #6B3FA0  (faixa topo, títulos)
+Turquesa: #3FB8AF  (faixa rodapé)
+Cinza texto: #333333
+Cinza claro (subtítulo): #666666
+Fonte: Helvetica (padrão jsPDF)
+```
+
+### Layout da página (A4, 210x297mm)
+```text
+┌──────────────────────────────┐  faixa roxa 8mm
+│  [LOGO 50mm centralizada]     │
+│      Proposta Comercial       │  roxo 22pt centralizado
+│      A/C Fulano - Cliente     │  cinza 11pt centralizado
+│  1. Apresentação              │  roxo 13pt bold
+│     texto justificado...      │  preto 11pt
+│  2. Escopo do Serviço         │
+│     ...                       │
+│  ... (3 a 7) ...              │
+│                               │
+│  Documento otimizado...       │  cinza 9pt centralizado
+└──────────────────────────────┘  faixa turquesa 8mm
+```
 
 ### Sem mudanças no banco
-Tudo é cálculo no front. Os dados já estão lá após o sync anterior.
+Tudo via UI + reaproveitamento do campo `notes`.
 
