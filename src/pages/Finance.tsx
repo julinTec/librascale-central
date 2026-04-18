@@ -156,11 +156,9 @@ export default function Finance() {
         </TabsList>
 
         <TabsContent value="receivables" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => { setRecEditing(null); setRecForm({ ...emptyReceivable, tax_percentage: taxDefault }); setRecOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Receita
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            As receitas são geradas automaticamente a partir dos eventos cadastrados. Aqui você ajusta imposto, datas, NF e status.
+          </p>
           <Card><CardContent className="p-4">
             <Table>
               <TableHeader><TableRow>
