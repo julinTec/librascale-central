@@ -44,8 +44,16 @@ export default function Events() {
   const [svcOpen, setSvcOpen] = useState(false);
   const [svcForm, setSvcForm] = useState(emptyService);
   const [svcEventId, setSvcEventId] = useState('');
+  // Linked receivable info
+  const [linkedReceivable, setLinkedReceivable] = useState<any>(null);
+  const [taxDefault, setTaxDefault] = useState(6);
 
-  useEffect(() => { load(); loadClients(); }, []);
+  useEffect(() => { load(); loadClients(); loadTaxDefault(); }, []);
+
+  const loadTaxDefault = async () => {
+    const { data } = await supabase.from('tax_settings').select('percentage').eq('is_default', true).limit(1);
+    if (data?.[0]) setTaxDefault(Number(data[0].percentage));
+  };
 
   const load = async () => {
     const { data } = await supabase.from('events').select('*, clients(name)').order('created_at', { ascending: false });
