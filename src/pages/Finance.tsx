@@ -40,6 +40,8 @@ export default function Finance() {
   const [payEditing, setPayEditing] = useState<any>(null);
   const [payForm, setPayForm] = useState(emptyPayable);
 
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'receivable' | 'payable'; id: string; label: string } | null>(null);
+
   useEffect(() => { loadAll(); loadTaxDefault(); }, []);
 
   const loadAll = async () => {
@@ -118,6 +120,16 @@ export default function Finance() {
     }
     toast({ title: payEditing ? 'Custo atualizado' : 'Custo criado' });
     setPayOpen(false); setPayEditing(null); setPayForm(emptyPayable); loadAll();
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const table = deleteTarget.type === 'receivable' ? 'event_receivables' : 'event_payables';
+    const { error } = await supabase.from(table).delete().eq('id', deleteTarget.id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Lançamento excluído' });
+    setDeleteTarget(null);
+    loadAll();
   };
 
   const fmtDate = (d: string | null) => d ? format(new Date(d + 'T12:00:00'), 'dd/MM/yyyy') : '—';
