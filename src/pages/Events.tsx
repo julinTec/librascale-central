@@ -298,6 +298,24 @@ export default function Events() {
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
 
+            {/* Linked receivable panel */}
+            {editing && Number(form.contract_value) > 0 && (
+              <div className="border-t pt-4">
+                <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                {linkedReceivable ? (
+                  <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md border bg-muted/30 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Bruto</p><p className="font-semibold">R$ {Number(linkedReceivable.amount).toFixed(2)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Imposto</p><p className="font-semibold">{Number(linkedReceivable.tax_percentage).toFixed(2)}%</p></div>
+                    <div><p className="text-xs text-muted-foreground">Líquido</p><p className="font-semibold text-success">R$ {Number(linkedReceivable.net_amount || 0).toFixed(2)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Status</p><p className="font-semibold capitalize">{linkedReceivable.status}</p></div>
+                    <p className="col-span-full text-xs text-muted-foreground">Para ajustar imposto, NF, datas e status, acesse <strong>Financeiro → Receitas</strong>.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2">Será criada ao salvar (imposto padrão {taxDefault}%).</p>
+                )}
+              </div>
+            )}
+
             {/* Event Services section */}
             {editing && (
               <div className="border-t pt-4 space-y-3">
