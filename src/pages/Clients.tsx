@@ -216,7 +216,7 @@ export default function Clients() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita. Se houver eventos ou agendas vinculados, a exclusão será bloqueada.
+              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Todos os vínculos serão removidos: eventos, sessões, alocações, agendas, orçamentos, receitas, custos, ocorrências e fechamentos. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
