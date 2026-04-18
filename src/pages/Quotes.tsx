@@ -495,7 +495,17 @@ export default function Quotes() {
               </div>
               <div><Label>Canal de Origem</Label><Input value={form.source_channel} onChange={e => setForm({ ...form, source_channel: e.target.value })} placeholder="WhatsApp, E-mail..." /></div>
             </div>
-            <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>A/C — Pessoa de contato</Label>
+                <Input value={form.attention_to} onChange={e => setForm({ ...form, attention_to: e.target.value })} placeholder="Ex: Sr. João Silva" />
+              </div>
+              <div>
+                <Label>Condições de Pagamento</Label>
+                <Input value={form.payment_terms} onChange={e => setForm({ ...form, payment_terms: e.target.value })} placeholder="Ex: 50% antecipado, 50% após o evento" />
+              </div>
+            </div>
+            <div><Label>Observações</Label><Textarea value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} placeholder="Detalhes adicionais sobre o escopo do serviço" /></div>
 
             {editing && (
               <div className="border-t pt-4 space-y-3">
