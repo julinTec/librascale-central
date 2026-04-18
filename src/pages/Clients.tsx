@@ -77,11 +77,11 @@ export default function Clients() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const { error } = await supabase.from('clients').delete().eq('id', deleteTarget.id);
+    const { error } = await supabase.rpc('delete_client_cascade' as any, { _client_id: deleteTarget.id });
     if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message + ' (verifique se há eventos/agendas vinculados)', variant: 'destructive' });
+      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Cliente excluído' });
+      toast({ title: 'Cliente e vínculos excluídos' });
       loadClients();
     }
     setDeleteTarget(null);
@@ -216,7 +216,7 @@ export default function Clients() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita. Se houver eventos ou agendas vinculados, a exclusão será bloqueada.
+              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Todos os vínculos serão removidos: eventos, sessões, alocações, agendas, orçamentos, receitas, custos, ocorrências e fechamentos. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
