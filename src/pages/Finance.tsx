@@ -162,10 +162,28 @@ export default function Finance() {
         </CardContent></Card>
       </div>
 
-      <Tabs defaultValue="receivables">
-        <TabsList>
-          <TabsTrigger value="receivables">Receitas</TabsTrigger>
-          <TabsTrigger value="payables">Custos</TabsTrigger>
+      <Tabs defaultValue="receivables" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 h-auto p-1.5 bg-muted gap-1.5">
+          <TabsTrigger
+            value="receivables"
+            className="flex items-center gap-3 px-6 py-4 rounded-md data-[state=active]:bg-success data-[state=active]:text-success-foreground data-[state=active]:shadow-md transition-all"
+          >
+            <TrendingUp className="h-5 w-5" />
+            <div className="flex flex-col items-start">
+              <span className="text-base font-semibold leading-tight">Receitas</span>
+              <span className="text-xs opacity-80">{fmtMoney(totalNetReceived + totalRecPending)}</span>
+            </div>
+          </TabsTrigger>
+          <TabsTrigger
+            value="payables"
+            className="flex items-center gap-3 px-6 py-4 rounded-md data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:shadow-md transition-all"
+          >
+            <TrendingDown className="h-5 w-5" />
+            <div className="flex flex-col items-start">
+              <span className="text-base font-semibold leading-tight">Custos</span>
+              <span className="text-xs opacity-80">{fmtMoney(totalPaidCosts + totalPayPending)}</span>
+            </div>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="receivables" className="space-y-4">
