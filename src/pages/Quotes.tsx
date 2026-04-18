@@ -39,7 +39,8 @@ import { format } from 'date-fns';
 const emptyForm = {
   client_id: '', event_name: '', event_type: '', venue: '',
   start_date: '', end_date: '', sessions_count: 1, quoted_value: 0,
-  status: 'recebido' as string, source_channel: '', notes: '',
+  status: 'recebido' as string, source_channel: '',
+  attention_to: '', payment_terms: '', observations: '',
 };
 
 const emptyItem = { service_type: 'interprete_libras' as string, description: '', quantity: 1, unit: '', unit_value: 0, total_value: 0, is_recurring: false, notes: '' };
