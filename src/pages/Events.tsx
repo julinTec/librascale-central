@@ -83,15 +83,72 @@ export default function Events() {
       modality: form.modality as any,
       billing_type: form.billing_type as any,
     };
+  const upsertReceivable = async (eventId: string, payload: typeof emptyForm) => {
+    const amt = Number(payload.contract_value || 0);
+    if (amt <= 0) return;
+    // Check existing
+    const { data: existing } = await supabase.from('event_receivables').select('*').eq('event_id', eventId).limit(1);
+    if (existing && existing.length > 0) {
+      // Update only origin fields, preserve tax/dates/status set by user
+      const r = existing[0];
+      const taxPct = Number(r.tax_percentage || 0);
+      const taxAmt = amt * taxPct / 100;
+      await supabase.from('event_receivables').update({
+        amount: amt,
+        client_id: payload.client_id || null,
+        competence_date: payload.start_date || r.competence_date,
+        description: payload.event_name,
+        tax_amount: taxAmt,
+        net_amount: amt - taxAmt,
+      }).eq('id', r.id);
+    } else {
+      const taxPct = taxDefault;
+      const taxAmt = amt * taxPct / 100;
+      await supabase.from('event_receivables').insert({
+        event_id: eventId,
+        client_id: payload.client_id || null,
+        amount: amt,
+        tax_percentage: taxPct,
+        tax_amount: taxAmt,
+        net_amount: amt - taxAmt,
+        status: 'pendente',
+        revenue_type: 'faturamento_unico',
+        competence_date: payload.start_date || null,
+        description: payload.event_name,
+      });
+    }
+  };
+
+  const loadLinkedReceivable = async (eventId: string) => {
+    const { data } = await supabase.from('event_receivables').select('*').eq('event_id', eventId).limit(1);
+    setLinkedReceivable(data?.[0] || null);
+  };
+
+  const handleSave = async () => {
+    if (!form.event_name) {
+      toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
+    }
+    const payload = {
+      ...form,
+      client_id: form.client_id || null,
+      contract_value: Number(form.contract_value),
+      status: form.status as EventStatus,
+      event_type: form.event_type as any,
+      modality: form.modality as any,
+      billing_type: form.billing_type as any,
+    };
+    let savedId = editing?.id as string | undefined;
     if (editing) {
       const { error } = await supabase.from('events').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     } else {
-      const { error } = await supabase.from('events').insert({ ...payload, created_by: user?.id });
+      const { data, error } = await supabase.from('events').insert({ ...payload, created_by: user?.id }).select('id').single();
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+      savedId = data?.id;
     }
-    toast({ title: editing ? 'Evento atualizado' : 'Evento criado' });
-    setOpen(false); setEditing(null); setForm(emptyForm); load();
+    if (savedId) await upsertReceivable(savedId, form);
+    toast({ title: editing ? 'Evento atualizado' : 'Evento criado', description: Number(form.contract_value) > 0 ? 'Receita vinculada atualizada no Financeiro.' : undefined });
+    setOpen(false); setEditing(null); setForm(emptyForm); setLinkedReceivable(null); load();
   };
 
   const openEdit = (e: any) => {
@@ -106,6 +163,7 @@ export default function Events() {
     });
     setOpen(true);
     loadServices(e.id);
+    loadLinkedReceivable(e.id);
   };
 
   const handleSaveService = async () => {
