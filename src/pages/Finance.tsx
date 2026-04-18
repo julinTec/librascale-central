@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, DollarSign, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { RECEIVABLE_STATUS_LABELS, RECEIVABLE_STATUS_COLORS, PAYABLE_STATUS_LABELS, PAYABLE_STATUS_COLORS, REVENUE_TYPE_LABELS, COST_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
