@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Pencil } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type Client = {
@@ -30,6 +31,7 @@ export default function Clients() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(emptyClient);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -72,6 +74,18 @@ export default function Clients() {
   };
 
   const openNew = () => { setEditing(null); setForm(emptyClient); setOpen(true); };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase.from('clients').delete().eq('id', deleteTarget.id);
+    if (error) {
+      toast({ title: 'Erro ao excluir', description: error.message + ' (verifique se há eventos/agendas vinculados)', variant: 'destructive' });
+    } else {
+      toast({ title: 'Cliente excluído' });
+      loadClients();
+    }
+    setDeleteTarget(null);
+  };
 
   const filtered = clients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -124,9 +138,14 @@ export default function Clients() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(c)}>
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -191,6 +210,21 @@ export default function Clients() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{deleteTarget?.name}</strong>? Esta ação não pode ser desfeita. Se houver eventos ou agendas vinculados, a exclusão será bloqueada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
