@@ -177,7 +177,7 @@ export default function Finance() {
               <TableHeader><TableRow>
                 <TableHead>Evento</TableHead><TableHead>Descrição</TableHead><TableHead>Tipo</TableHead>
                 <TableHead>Valor Bruto</TableHead><TableHead>Imposto</TableHead><TableHead>Valor Líquido</TableHead>
-                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px]" />
+                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[100px]" />
               </TableRow></TableHeader>
               <TableBody>
                 {receivables.map(r => (
@@ -190,7 +190,7 @@ export default function Finance() {
                     <TableCell className="font-medium text-success">{fmtMoney(Number(r.net_amount || r.amount))}</TableCell>
                     <TableCell>{fmtDate(r.due_date)}</TableCell>
                     <TableCell><Badge className={RECEIVABLE_STATUS_COLORS[r.status]}>{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => {
                         setRecEditing(r); setRecForm({
                           event_id: r.event_id, amount: r.amount, tax_percentage: r.tax_percentage || 0,
@@ -201,6 +201,9 @@ export default function Finance() {
                           client_id: r.client_id || '',
                         }); setRecOpen(true);
                       }}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'receivable', id: r.id, label: `${(r.events as any)?.event_name || 'receita'} — ${fmtMoney(Number(r.amount))}` })}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -221,7 +224,7 @@ export default function Finance() {
               <TableHeader><TableRow>
                 <TableHead>Evento</TableHead><TableHead>Descrição</TableHead><TableHead>Tipo</TableHead>
                 <TableHead>Profissional</TableHead><TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px]" />
+                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[100px]" />
               </TableRow></TableHeader>
               <TableBody>
                 {payables.map(p => (
@@ -233,7 +236,7 @@ export default function Finance() {
                     <TableCell>{fmtMoney(Number(p.amount))}</TableCell>
                     <TableCell>{fmtDate(p.due_date)}</TableCell>
                     <TableCell><Badge className={PAYABLE_STATUS_COLORS[p.status]}>{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => {
                         setPayEditing(p); setPayForm({
                           event_id: p.event_id, interpreter_id: p.interpreter_id || '', amount: p.amount,
@@ -242,6 +245,9 @@ export default function Finance() {
                           competence_date: p.competence_date || '', description: p.description || '',
                         }); setPayOpen(true);
                       }}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'payable', id: p.id, label: `${(p.events as any)?.event_name || 'custo'} — ${fmtMoney(Number(p.amount))}` })}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
