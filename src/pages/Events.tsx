@@ -70,19 +70,6 @@ export default function Events() {
     setServices(data || []);
   };
 
-  const handleSave = async () => {
-    if (!form.event_name) {
-      toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
-    }
-    const payload = {
-      ...form,
-      client_id: form.client_id || null,
-      contract_value: Number(form.contract_value),
-      status: form.status as EventStatus,
-      event_type: form.event_type as any,
-      modality: form.modality as any,
-      billing_type: form.billing_type as any,
-    };
   const upsertReceivable = async (eventId: string, payload: typeof emptyForm) => {
     const amt = Number(payload.contract_value || 0);
     if (amt <= 0) return;
