@@ -4,8 +4,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logoNossoMundo from '@/assets/logo-nosso-mundo.jpg';
 
 type QuoteStatus = Database['public']['Enums']['quote_status'];
+
+// Helpers para parsear/serializar campos extras dentro de notes (JSON retro-compatível)
+const parseNotes = (raw: string | null | undefined): { ac: string; payment: string; obs: string } => {
+  if (!raw) return { ac: '', payment: '', obs: '' };
+  try {
+    const j = JSON.parse(raw);
+    if (j && typeof j === 'object' && ('ac' in j || 'payment' in j || 'obs' in j)) {
+      return { ac: j.ac || '', payment: j.payment || '', obs: j.obs || '' };
+    }
+  } catch { /* not json */ }
+  return { ac: '', payment: '', obs: raw };
+};
+const serializeNotes = (ac: string, payment: string, obs: string) =>
+  JSON.stringify({ ac: ac || '', payment: payment || '', obs: obs || '' });
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
