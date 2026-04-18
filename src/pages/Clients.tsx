@@ -31,6 +31,7 @@ export default function Clients() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState(emptyClient);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
