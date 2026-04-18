@@ -156,11 +156,9 @@ export default function Finance() {
         </TabsList>
 
         <TabsContent value="receivables" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => { setRecEditing(null); setRecForm({ ...emptyReceivable, tax_percentage: taxDefault }); setRecOpen(true); }}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Receita
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            As receitas são geradas automaticamente a partir dos eventos cadastrados. Aqui você ajusta imposto, datas, NF e status.
+          </p>
           <Card><CardContent className="p-4">
             <Table>
               <TableHeader><TableRow>
@@ -244,31 +242,28 @@ export default function Finance() {
       {/* Receivable Dialog */}
       <Dialog open={recOpen} onOpenChange={setRecOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{recEditing ? 'Editar Receita' : 'Nova Receita'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Editar Receita</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <p className="text-xs text-muted-foreground mb-1">Origem (vinculada ao evento)</p>
+              <p className="font-medium">{events.find(ev => ev.id === recForm.event_id)?.event_name || '—'}</p>
+              <p className="text-xs text-muted-foreground mt-1">Valor bruto: <span className="font-medium text-foreground">{fmtMoney(Number(recForm.amount))}</span></p>
+            </div>
+            <div>
+              <Label>Tipo de Receita</Label>
+              <Select value={recForm.revenue_type} onValueChange={v => setRecForm({ ...recForm, revenue_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{Object.entries(REVENUE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Evento *</Label>
-                <Select value={recForm.event_id} onValueChange={v => setRecForm({ ...recForm, event_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>{events.map(e => <SelectItem key={e.id} value={e.id}>{e.event_name}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Imposto (%) — afeta o líquido</Label>
+                <Input type="number" step="0.01" value={recForm.tax_percentage} onChange={e => setRecForm({ ...recForm, tax_percentage: Number(e.target.value) })} />
               </div>
-              <div>
-                <Label>Tipo de Receita</Label>
-                <Select value={recForm.revenue_type} onValueChange={v => setRecForm({ ...recForm, revenue_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(REVENUE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div><Label>Descrição</Label><Input value={recForm.description} onChange={e => setRecForm({ ...recForm, description: e.target.value })} /></div>
-            <div className="grid grid-cols-3 gap-4">
-              <div><Label>Valor Bruto (R$) *</Label><Input type="number" step="0.01" value={recForm.amount} onChange={e => setRecForm({ ...recForm, amount: Number(e.target.value) })} /></div>
-              <div><Label>Imposto (%)</Label><Input type="number" step="0.01" value={recForm.tax_percentage} onChange={e => setRecForm({ ...recForm, tax_percentage: Number(e.target.value) })} /></div>
               <div>
                 <Label>Valor Líquido</Label>
-                <Input readOnly value={fmtMoney(Number(recForm.amount) - (Number(recForm.amount) * Number(recForm.tax_percentage) / 100))} className="bg-muted" />
+                <Input readOnly value={fmtMoney(Number(recForm.amount) - (Number(recForm.amount) * Number(recForm.tax_percentage) / 100))} className="bg-muted font-semibold" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -285,16 +280,6 @@ export default function Finance() {
                   <SelectContent>{Object.entries(RECEIVABLE_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <Label>Cliente (opcional)</Label>
-              <Select value={recForm.client_id || '__none__'} onValueChange={v => setRecForm({ ...recForm, client_id: v === '__none__' ? '' : v })}>
-                <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sem cliente</SelectItem>
-                  {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
             </div>
             <div><Label>Observações</Label><Textarea value={recForm.notes} onChange={e => setRecForm({ ...recForm, notes: e.target.value })} /></div>
           </div>

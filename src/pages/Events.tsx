@@ -44,8 +44,16 @@ export default function Events() {
   const [svcOpen, setSvcOpen] = useState(false);
   const [svcForm, setSvcForm] = useState(emptyService);
   const [svcEventId, setSvcEventId] = useState('');
+  // Linked receivable info
+  const [linkedReceivable, setLinkedReceivable] = useState<any>(null);
+  const [taxDefault, setTaxDefault] = useState(6);
 
-  useEffect(() => { load(); loadClients(); }, []);
+  useEffect(() => { load(); loadClients(); loadTaxDefault(); }, []);
+
+  const loadTaxDefault = async () => {
+    const { data } = await supabase.from('tax_settings').select('percentage').eq('is_default', true).limit(1);
+    if (data?.[0]) setTaxDefault(Number(data[0].percentage));
+  };
 
   const load = async () => {
     const { data } = await supabase.from('events').select('*, clients(name)').order('created_at', { ascending: false });
@@ -62,6 +70,47 @@ export default function Events() {
     setServices(data || []);
   };
 
+  const upsertReceivable = async (eventId: string, payload: typeof emptyForm) => {
+    const amt = Number(payload.contract_value || 0);
+    if (amt <= 0) return;
+    // Check existing
+    const { data: existing } = await supabase.from('event_receivables').select('*').eq('event_id', eventId).limit(1);
+    if (existing && existing.length > 0) {
+      // Update only origin fields, preserve tax/dates/status set by user
+      const r = existing[0];
+      const taxPct = Number(r.tax_percentage || 0);
+      const taxAmt = amt * taxPct / 100;
+      await supabase.from('event_receivables').update({
+        amount: amt,
+        client_id: payload.client_id || null,
+        competence_date: payload.start_date || r.competence_date,
+        description: payload.event_name,
+        tax_amount: taxAmt,
+        net_amount: amt - taxAmt,
+      }).eq('id', r.id);
+    } else {
+      const taxPct = taxDefault;
+      const taxAmt = amt * taxPct / 100;
+      await supabase.from('event_receivables').insert({
+        event_id: eventId,
+        client_id: payload.client_id || null,
+        amount: amt,
+        tax_percentage: taxPct,
+        tax_amount: taxAmt,
+        net_amount: amt - taxAmt,
+        status: 'pendente',
+        revenue_type: 'faturamento_unico',
+        competence_date: payload.start_date || null,
+        description: payload.event_name,
+      });
+    }
+  };
+
+  const loadLinkedReceivable = async (eventId: string) => {
+    const { data } = await supabase.from('event_receivables').select('*').eq('event_id', eventId).limit(1);
+    setLinkedReceivable(data?.[0] || null);
+  };
+
   const handleSave = async () => {
     if (!form.event_name) {
       toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
@@ -75,15 +124,18 @@ export default function Events() {
       modality: form.modality as any,
       billing_type: form.billing_type as any,
     };
+    let savedId = editing?.id as string | undefined;
     if (editing) {
       const { error } = await supabase.from('events').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     } else {
-      const { error } = await supabase.from('events').insert({ ...payload, created_by: user?.id });
+      const { data, error } = await supabase.from('events').insert({ ...payload, created_by: user?.id }).select('id').single();
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+      savedId = data?.id;
     }
-    toast({ title: editing ? 'Evento atualizado' : 'Evento criado' });
-    setOpen(false); setEditing(null); setForm(emptyForm); load();
+    if (savedId) await upsertReceivable(savedId, form);
+    toast({ title: editing ? 'Evento atualizado' : 'Evento criado', description: Number(form.contract_value) > 0 ? 'Receita vinculada atualizada no Financeiro.' : undefined });
+    setOpen(false); setEditing(null); setForm(emptyForm); setLinkedReceivable(null); load();
   };
 
   const openEdit = (e: any) => {
@@ -98,6 +150,7 @@ export default function Events() {
     });
     setOpen(true);
     loadServices(e.id);
+    loadLinkedReceivable(e.id);
   };
 
   const handleSaveService = async () => {
@@ -244,6 +297,24 @@ export default function Events() {
               </div>
             </div>
             <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+
+            {/* Linked receivable panel */}
+            {editing && Number(form.contract_value) > 0 && (
+              <div className="border-t pt-4">
+                <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                {linkedReceivable ? (
+                  <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md border bg-muted/30 text-sm">
+                    <div><p className="text-xs text-muted-foreground">Bruto</p><p className="font-semibold">R$ {Number(linkedReceivable.amount).toFixed(2)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Imposto</p><p className="font-semibold">{Number(linkedReceivable.tax_percentage).toFixed(2)}%</p></div>
+                    <div><p className="text-xs text-muted-foreground">Líquido</p><p className="font-semibold text-success">R$ {Number(linkedReceivable.net_amount || 0).toFixed(2)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">Status</p><p className="font-semibold capitalize">{linkedReceivable.status}</p></div>
+                    <p className="col-span-full text-xs text-muted-foreground">Para ajustar imposto, NF, datas e status, acesse <strong>Financeiro → Receitas</strong>.</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground mt-2">Será criada ao salvar (imposto padrão {taxDefault}%).</p>
+                )}
+              </div>
+            )}
 
             {/* Event Services section */}
             {editing && (
