@@ -83,17 +83,23 @@ export default function Quotes() {
       toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
     }
     const payload = {
-      ...form,
       client_id: form.client_id || null,
+      event_name: form.event_name,
+      event_type: form.event_type,
+      venue: form.venue,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
       sessions_count: Number(form.sessions_count),
       quoted_value: Number(form.quoted_value),
       status: form.status as QuoteStatus,
+      source_channel: form.source_channel,
+      notes: serializeNotes(form.attention_to, form.payment_terms, form.observations),
     };
     if (editing) {
       const { error } = await supabase.from('event_quotes').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro ao atualizar', description: error.message, variant: 'destructive' }); return; }
     } else {
-      const { error } = await supabase.from('event_quotes').insert({ ...payload, created_by: user?.id });
+      const { error } = await supabase.from('event_quotes').insert({ ...payload, created_by: user?.id } as any);
       if (error) { toast({ title: 'Erro ao criar', description: error.message, variant: 'destructive' }); return; }
     }
     toast({ title: editing ? 'Orçamento atualizado' : 'Orçamento criado' });
@@ -101,12 +107,14 @@ export default function Quotes() {
   };
 
   const openEdit = (q: any) => {
+    const parsed = parseNotes(q.notes);
     setEditing(q);
     setForm({
       client_id: q.client_id || '', event_name: q.event_name, event_type: q.event_type || '',
       venue: q.venue || '', start_date: q.start_date || '', end_date: q.end_date || '',
       sessions_count: q.sessions_count || 1, quoted_value: q.quoted_value || 0,
-      status: q.status, source_channel: q.source_channel || '', notes: q.notes || '',
+      status: q.status, source_channel: q.source_channel || '',
+      attention_to: parsed.ac, payment_terms: parsed.payment, observations: parsed.obs,
     });
     setOpen(true);
     loadItems(q.id);
