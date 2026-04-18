@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, DollarSign, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
+import { Plus, Pencil, Trash2, DollarSign, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react';
 import { RECEIVABLE_STATUS_LABELS, RECEIVABLE_STATUS_COLORS, PAYABLE_STATUS_LABELS, PAYABLE_STATUS_COLORS, REVENUE_TYPE_LABELS, COST_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -38,6 +39,8 @@ export default function Finance() {
   const [payOpen, setPayOpen] = useState(false);
   const [payEditing, setPayEditing] = useState<any>(null);
   const [payForm, setPayForm] = useState(emptyPayable);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'receivable' | 'payable'; id: string; label: string } | null>(null);
 
   useEffect(() => { loadAll(); loadTaxDefault(); }, []);
 
@@ -119,6 +122,16 @@ export default function Finance() {
     setPayOpen(false); setPayEditing(null); setPayForm(emptyPayable); loadAll();
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const table = deleteTarget.type === 'receivable' ? 'event_receivables' : 'event_payables';
+    const { error } = await supabase.from(table).delete().eq('id', deleteTarget.id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Lançamento excluído' });
+    setDeleteTarget(null);
+    loadAll();
+  };
+
   const fmtDate = (d: string | null) => d ? format(new Date(d + 'T12:00:00'), 'dd/MM/yyyy') : '—';
   const fmtMoney = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
 
@@ -164,7 +177,7 @@ export default function Finance() {
               <TableHeader><TableRow>
                 <TableHead>Evento</TableHead><TableHead>Descrição</TableHead><TableHead>Tipo</TableHead>
                 <TableHead>Valor Bruto</TableHead><TableHead>Imposto</TableHead><TableHead>Valor Líquido</TableHead>
-                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px]" />
+                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[100px]" />
               </TableRow></TableHeader>
               <TableBody>
                 {receivables.map(r => (
@@ -177,7 +190,7 @@ export default function Finance() {
                     <TableCell className="font-medium text-success">{fmtMoney(Number(r.net_amount || r.amount))}</TableCell>
                     <TableCell>{fmtDate(r.due_date)}</TableCell>
                     <TableCell><Badge className={RECEIVABLE_STATUS_COLORS[r.status]}>{RECEIVABLE_STATUS_LABELS[r.status]}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => {
                         setRecEditing(r); setRecForm({
                           event_id: r.event_id, amount: r.amount, tax_percentage: r.tax_percentage || 0,
@@ -188,6 +201,9 @@ export default function Finance() {
                           client_id: r.client_id || '',
                         }); setRecOpen(true);
                       }}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'receivable', id: r.id, label: `${(r.events as any)?.event_name || 'receita'} — ${fmtMoney(Number(r.amount))}` })}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -208,7 +224,7 @@ export default function Finance() {
               <TableHeader><TableRow>
                 <TableHead>Evento</TableHead><TableHead>Descrição</TableHead><TableHead>Tipo</TableHead>
                 <TableHead>Profissional</TableHead><TableHead>Valor</TableHead>
-                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[60px]" />
+                <TableHead>Vencimento</TableHead><TableHead>Status</TableHead><TableHead className="w-[100px]" />
               </TableRow></TableHeader>
               <TableBody>
                 {payables.map(p => (
@@ -220,7 +236,7 @@ export default function Finance() {
                     <TableCell>{fmtMoney(Number(p.amount))}</TableCell>
                     <TableCell>{fmtDate(p.due_date)}</TableCell>
                     <TableCell><Badge className={PAYABLE_STATUS_COLORS[p.status]}>{PAYABLE_STATUS_LABELS[p.status]}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => {
                         setPayEditing(p); setPayForm({
                           event_id: p.event_id, interpreter_id: p.interpreter_id || '', amount: p.amount,
@@ -229,6 +245,9 @@ export default function Finance() {
                           competence_date: p.competence_date || '', description: p.description || '',
                         }); setPayOpen(true);
                       }}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'payable', id: p.id, label: `${(p.events as any)?.event_name || 'custo'} — ${fmtMoney(Number(p.amount))}` })}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -345,6 +364,21 @@ export default function Finance() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. {deleteTarget?.label && <span className="font-medium block mt-2">{deleteTarget.label}</span>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
