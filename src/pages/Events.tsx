@@ -12,9 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Search } from 'lucide-react';
+import { Plus, Pencil, Search, Trash2 } from 'lucide-react';
 import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS, EVENT_TYPE_LABELS, EVENT_MODALITY_LABELS, BILLING_TYPE_LABELS, SERVICE_TYPE_LABELS, BILLING_MODE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -47,6 +48,10 @@ export default function Events() {
   // Linked receivable info
   const [linkedReceivable, setLinkedReceivable] = useState<any>(null);
   const [taxDefault, setTaxDefault] = useState(6);
+  // Edit/Delete receivable
+  const [recOpen, setRecOpen] = useState(false);
+  const [recDelOpen, setRecDelOpen] = useState(false);
+  const [recForm, setRecForm] = useState({ amount: 0, tax_percentage: 0, competence_date: '', due_date: '', status: 'pendente', invoice_number: '', description: '' });
 
   useEffect(() => { load(); loadClients(); loadTaxDefault(); }, []);
 
@@ -160,6 +165,37 @@ export default function Events() {
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Serviço adicionado' });
     setSvcOpen(false); setSvcForm(emptyService); loadServices(svcEventId);
+  };
+
+  const handleUpdateReceivable = async () => {
+    if (!linkedReceivable) return;
+    const amt = Number(recForm.amount || 0);
+    const taxPct = Number(recForm.tax_percentage || 0);
+    const taxAmt = amt * taxPct / 100;
+    const { error } = await supabase.from('event_receivables').update({
+      amount: amt,
+      tax_percentage: taxPct,
+      tax_amount: taxAmt,
+      net_amount: amt - taxAmt,
+      competence_date: recForm.competence_date || null,
+      due_date: recForm.due_date || null,
+      status: recForm.status as any,
+      invoice_number: recForm.invoice_number || null,
+      description: recForm.description || null,
+    }).eq('id', linkedReceivable.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Receita atualizada' });
+    setRecOpen(false);
+    if (editing) loadLinkedReceivable(editing.id);
+  };
+
+  const handleDeleteReceivable = async () => {
+    if (!linkedReceivable) return;
+    const { error } = await supabase.from('event_receivables').delete().eq('id', linkedReceivable.id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Receita excluída', description: 'Para não recriar ao salvar, zere o Valor Contratado.' });
+    setRecDelOpen(false);
+    setLinkedReceivable(null);
   };
 
   const filtered = events.filter(e => {
@@ -301,14 +337,35 @@ export default function Events() {
             {/* Linked receivable panel */}
             {editing && Number(form.contract_value) > 0 && (
               <div className="border-t pt-4">
-                <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                  {linkedReceivable && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setRecForm({
+                          amount: Number(linkedReceivable.amount || 0),
+                          tax_percentage: Number(linkedReceivable.tax_percentage || 0),
+                          competence_date: linkedReceivable.competence_date || '',
+                          due_date: linkedReceivable.due_date || '',
+                          status: linkedReceivable.status || 'pendente',
+                          invoice_number: linkedReceivable.invoice_number || '',
+                          description: linkedReceivable.description || '',
+                        });
+                        setRecOpen(true);
+                      }}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setRecDelOpen(true)}>
+                        <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {linkedReceivable ? (
                   <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md border bg-muted/30 text-sm">
                     <div><p className="text-xs text-muted-foreground">Bruto</p><p className="font-semibold">R$ {Number(linkedReceivable.amount).toFixed(2)}</p></div>
                     <div><p className="text-xs text-muted-foreground">Imposto</p><p className="font-semibold">{Number(linkedReceivable.tax_percentage).toFixed(2)}%</p></div>
                     <div><p className="text-xs text-muted-foreground">Líquido</p><p className="font-semibold text-success">R$ {Number(linkedReceivable.net_amount || 0).toFixed(2)}</p></div>
                     <div><p className="text-xs text-muted-foreground">Status</p><p className="font-semibold capitalize">{linkedReceivable.status}</p></div>
-                    <p className="col-span-full text-xs text-muted-foreground">Para ajustar imposto, NF, datas e status, acesse <strong>Financeiro → Receitas</strong>.</p>
+                    <p className="col-span-full text-xs text-muted-foreground">Editar aqui não altera o Valor Contratado. Salvar o evento sobrescreve o bruto.</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-2">Será criada ao salvar (imposto padrão {taxDefault}%).</p>
@@ -381,6 +438,61 @@ export default function Events() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Receivable Dialog */}
+      <Dialog open={recOpen} onOpenChange={setRecOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar Receita Vinculada</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Valor Bruto (R$)</Label><Input type="number" step="0.01" value={recForm.amount} onChange={e => setRecForm({ ...recForm, amount: Number(e.target.value) })} /></div>
+              <div><Label>Imposto (%)</Label><Input type="number" step="0.01" value={recForm.tax_percentage} onChange={e => setRecForm({ ...recForm, tax_percentage: Number(e.target.value) })} /></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Líquido: <strong>R$ {(recForm.amount * (1 - recForm.tax_percentage / 100)).toFixed(2)}</strong></p>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Competência</Label><Input type="date" value={recForm.competence_date} onChange={e => setRecForm({ ...recForm, competence_date: e.target.value })} /></div>
+              <div><Label>Vencimento</Label><Input type="date" value={recForm.due_date} onChange={e => setRecForm({ ...recForm, due_date: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={recForm.status} onValueChange={v => setRecForm({ ...recForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="recebido">Recebido</SelectItem>
+                    <SelectItem value="atrasado">Atrasado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Nº NF</Label><Input value={recForm.invoice_number} onChange={e => setRecForm({ ...recForm, invoice_number: e.target.value })} /></div>
+            </div>
+            <div><Label>Descrição</Label><Input value={recForm.description} onChange={e => setRecForm({ ...recForm, description: e.target.value })} /></div>
+            <p className="text-xs text-muted-foreground">⚠️ Editar aqui não altera o Valor Contratado do evento. Salvar o evento sobrescreve o bruto.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUpdateReceivable}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Receivable Confirmation */}
+      <AlertDialog open={recDelOpen} onOpenChange={setRecDelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir receita vinculada?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A receita será removida do Financeiro. Para evitar que seja recriada ao salvar este evento, zere o Valor Contratado antes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReceivable} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
