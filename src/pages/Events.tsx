@@ -197,6 +197,8 @@ export default function Events() {
     setRecDelOpen(false);
     setLinkedReceivable(null);
   };
+
+  const filtered = events.filter(e => {
     const matchSearch = e.event_name?.toLowerCase().includes(search.toLowerCase()) ||
       (e.clients as any)?.name?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || e.status === filterStatus;
