@@ -167,7 +167,36 @@ export default function Events() {
     setSvcOpen(false); setSvcForm(emptyService); loadServices(svcEventId);
   };
 
-  const filtered = events.filter(e => {
+  const handleUpdateReceivable = async () => {
+    if (!linkedReceivable) return;
+    const amt = Number(recForm.amount || 0);
+    const taxPct = Number(recForm.tax_percentage || 0);
+    const taxAmt = amt * taxPct / 100;
+    const { error } = await supabase.from('event_receivables').update({
+      amount: amt,
+      tax_percentage: taxPct,
+      tax_amount: taxAmt,
+      net_amount: amt - taxAmt,
+      competence_date: recForm.competence_date || null,
+      due_date: recForm.due_date || null,
+      status: recForm.status as any,
+      invoice_number: recForm.invoice_number || null,
+      description: recForm.description || null,
+    }).eq('id', linkedReceivable.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Receita atualizada' });
+    setRecOpen(false);
+    if (editing) loadLinkedReceivable(editing.id);
+  };
+
+  const handleDeleteReceivable = async () => {
+    if (!linkedReceivable) return;
+    const { error } = await supabase.from('event_receivables').delete().eq('id', linkedReceivable.id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Receita excluída', description: 'Para não recriar ao salvar, zere o Valor Contratado.' });
+    setRecDelOpen(false);
+    setLinkedReceivable(null);
+  };
     const matchSearch = e.event_name?.toLowerCase().includes(search.toLowerCase()) ||
       (e.clients as any)?.name?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || e.status === filterStatus;
