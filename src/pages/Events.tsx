@@ -438,6 +438,61 @@ export default function Events() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Receivable Dialog */}
+      <Dialog open={recOpen} onOpenChange={setRecOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar Receita Vinculada</DialogTitle></DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Valor Bruto (R$)</Label><Input type="number" step="0.01" value={recForm.amount} onChange={e => setRecForm({ ...recForm, amount: Number(e.target.value) })} /></div>
+              <div><Label>Imposto (%)</Label><Input type="number" step="0.01" value={recForm.tax_percentage} onChange={e => setRecForm({ ...recForm, tax_percentage: Number(e.target.value) })} /></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Líquido: <strong>R$ {(recForm.amount * (1 - recForm.tax_percentage / 100)).toFixed(2)}</strong></p>
+            <div className="grid grid-cols-2 gap-4">
+              <div><Label>Competência</Label><Input type="date" value={recForm.competence_date} onChange={e => setRecForm({ ...recForm, competence_date: e.target.value })} /></div>
+              <div><Label>Vencimento</Label><Input type="date" value={recForm.due_date} onChange={e => setRecForm({ ...recForm, due_date: e.target.value })} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Status</Label>
+                <Select value={recForm.status} onValueChange={v => setRecForm({ ...recForm, status: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="recebido">Recebido</SelectItem>
+                    <SelectItem value="atrasado">Atrasado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Nº NF</Label><Input value={recForm.invoice_number} onChange={e => setRecForm({ ...recForm, invoice_number: e.target.value })} /></div>
+            </div>
+            <div><Label>Descrição</Label><Input value={recForm.description} onChange={e => setRecForm({ ...recForm, description: e.target.value })} /></div>
+            <p className="text-xs text-muted-foreground">⚠️ Editar aqui não altera o Valor Contratado do evento. Salvar o evento sobrescreve o bruto.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUpdateReceivable}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Receivable Confirmation */}
+      <AlertDialog open={recDelOpen} onOpenChange={setRecDelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir receita vinculada?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A receita será removida do Financeiro. Para evitar que seja recriada ao salvar este evento, zere o Valor Contratado antes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReceivable} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
