@@ -306,14 +306,35 @@ export default function Events() {
             {/* Linked receivable panel */}
             {editing && Number(form.contract_value) > 0 && (
               <div className="border-t pt-4">
-                <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold">Receita Vinculada (Financeiro)</Label>
+                  {linkedReceivable && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setRecForm({
+                          amount: Number(linkedReceivable.amount || 0),
+                          tax_percentage: Number(linkedReceivable.tax_percentage || 0),
+                          competence_date: linkedReceivable.competence_date || '',
+                          due_date: linkedReceivable.due_date || '',
+                          status: linkedReceivable.status || 'pendente',
+                          invoice_number: linkedReceivable.invoice_number || '',
+                          description: linkedReceivable.description || '',
+                        });
+                        setRecOpen(true);
+                      }}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
+                      <Button size="sm" variant="destructive" onClick={() => setRecDelOpen(true)}>
+                        <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 {linkedReceivable ? (
                   <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded-md border bg-muted/30 text-sm">
                     <div><p className="text-xs text-muted-foreground">Bruto</p><p className="font-semibold">R$ {Number(linkedReceivable.amount).toFixed(2)}</p></div>
                     <div><p className="text-xs text-muted-foreground">Imposto</p><p className="font-semibold">{Number(linkedReceivable.tax_percentage).toFixed(2)}%</p></div>
                     <div><p className="text-xs text-muted-foreground">Líquido</p><p className="font-semibold text-success">R$ {Number(linkedReceivable.net_amount || 0).toFixed(2)}</p></div>
                     <div><p className="text-xs text-muted-foreground">Status</p><p className="font-semibold capitalize">{linkedReceivable.status}</p></div>
-                    <p className="col-span-full text-xs text-muted-foreground">Para ajustar imposto, NF, datas e status, acesse <strong>Financeiro → Receitas</strong>.</p>
+                    <p className="col-span-full text-xs text-muted-foreground">Editar aqui não altera o Valor Contratado. Salvar o evento sobrescreve o bruto.</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-2">Será criada ao salvar (imposto padrão {taxDefault}%).</p>
