@@ -48,6 +48,10 @@ export default function Events() {
   // Linked receivable info
   const [linkedReceivable, setLinkedReceivable] = useState<any>(null);
   const [taxDefault, setTaxDefault] = useState(6);
+  // Edit/Delete receivable
+  const [recOpen, setRecOpen] = useState(false);
+  const [recDelOpen, setRecDelOpen] = useState(false);
+  const [recForm, setRecForm] = useState({ amount: 0, tax_percentage: 0, competence_date: '', due_date: '', status: 'pendente', invoice_number: '', description: '' });
 
   useEffect(() => { load(); loadClients(); loadTaxDefault(); }, []);
 
