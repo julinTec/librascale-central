@@ -235,7 +235,14 @@ export default function Agenda() {
                     <TableCell className="text-sm">{EVENT_MODALITY_LABELS[s.modality] || s.modality}</TableCell>
                     <TableCell><Badge className={SCHEDULE_STATUS_V2_COLORS[s.status]}>{SCHEDULE_STATUS_V2_LABELS[s.status]}</Badge></TableCell>
                     <TableCell>
-                      {hasConflict(s) && <span title="Conflito de horário"><AlertTriangle className="h-4 w-4 text-warning" /></span>}
+                      {(() => {
+                        const conflicts = getConflictNames(s);
+                        return conflicts.length > 0 ? (
+                          <span title={`Conflito: ${conflicts.join(', ')} também alocado(s) em outra agenda neste horário`}>
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          </span>
+                        ) : null;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -243,6 +250,25 @@ export default function Agenda() {
                         <Button variant="ghost" size="icon" title="Alocar profissional" onClick={() => {
                           setAssignSessionId(s.id); setEditingAssign(null); setAssignForm(emptyAssignment); setAssignOpen(true);
                         }}><UserPlus className="h-4 w-4" /></Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir agenda?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {(allAssignmentsMap[s.id]?.length || 0) > 0
+                                  ? `Esta agenda possui ${allAssignmentsMap[s.id]?.length} profissional(is) alocado(s). Todas as alocações serão removidas.`
+                                  : 'Esta ação não pode ser desfeita.'}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteSession(s.id)}>Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
