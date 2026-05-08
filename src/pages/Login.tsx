@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mic } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import logo from '@/assets/logo.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,12 +20,10 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email, password,
           options: { data: { full_name: fullName } },
         });
         if (error) throw error;
@@ -43,18 +41,23 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
-            <Mic className="w-8 h-8 text-primary-foreground" />
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-background">
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-secondary/25 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 right-1/4 w-72 h-72 rounded-full bg-accent/30 blur-3xl" />
+
+      <Card className="relative w-full max-w-md glass shadow-elegant rounded-2xl border-0">
+        <CardHeader className="text-center space-y-4 pt-8">
+          <div className="mx-auto w-20 h-20 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-4 ring-primary/30">
+            <img src={logo} alt="Nosso Mundo Talentos" className="w-full h-full object-cover" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Nosso Mundo</CardTitle>
+            <CardTitle className="text-2xl font-bold tracking-tight">Nosso Mundo Talentos</CardTitle>
             <CardDescription>Gestão de Eventos</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
               <div className="space-y-2">
@@ -70,12 +73,16 @@ export default function Login() {
               <Label htmlFor="password">Senha</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full gradient-primary text-primary-foreground border-0 shadow-elegant hover:opacity-95 transition-opacity"
+            >
               {loading ? 'Carregando...' : isSignUp ? 'Criar conta' : 'Entrar'}
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               {isSignUp ? 'Já tem conta?' : 'Não tem conta?'}{' '}
-              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-primary underline">
+              <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="text-primary font-medium hover:text-primary-hover underline-offset-4 hover:underline">
                 {isSignUp ? 'Entrar' : 'Criar conta'}
               </button>
             </p>

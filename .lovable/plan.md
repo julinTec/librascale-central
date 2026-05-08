@@ -1,42 +1,47 @@
-# Exclusão de registros + correção de conflitos de horário
+# Rebrand visual: paleta Nosso Mundo Talentos + logo
 
-## 1. Exclusão em Profissionais (`src/pages/Interpreters.tsx`)
-- Adicionar botão lixeira na coluna de ações.
-- Antes de excluir, verificar se o profissional possui `event_assignments`. Se sim, bloquear com toast: "Profissional possui alocações vinculadas. Inative em vez de excluir."
-- Se não houver vínculos, abrir `AlertDialog` de confirmação e executar `delete().eq('id', ...)`.
-- Recarregar a lista após sucesso.
+Aplicar a paleta da marca em todo o sistema, integrar a logo e adotar um visual premium, moderno, com cantos suaves, sombras elegantes e leve glassmorphism.
 
-## 2. Exclusão em Eventos (`src/pages/Events.tsx`)
-- Adicionar botão lixeira na coluna Ações.
-- Criar uma função SQL `delete_event_cascade(_event_id uuid)` (SECURITY DEFINER, restrita a admin/operacional) que apaga em ordem:
-  - `event_assignments` (via sessions do evento)
-  - `event_sessions`
-  - `event_expenses`
-  - `event_payables`
-  - `event_receivables`
-  - `event_services`
-  - `events`
-- No frontend, abrir `AlertDialog` de confirmação avisando que receitas, agendas, alocações e despesas vinculadas também serão removidas. Chamar via `supabase.rpc('delete_event_cascade', { _event_id })`.
+## 1. Tokens do design system (`src/index.css`)
+Substituir o tema verde atual por tokens HSL da nova paleta:
+- `--background` `#F7F5F1`, `--card/--popover` `#FFFFFF`, `--border/--input` `#DDD8D2`
+- `--foreground` `#1F1F1F`, `--muted-foreground` `#6E6A73`
+- `--primary` `#E56718`, `--primary-hover` `#C95512`, `--primary-glow` `#F2B277`
+- `--secondary` `#5B4B7A` (roxo institucional)
+- `--accent` `#F2B277`, `--light-accent` `#C9BEDB`
+- `--ring` = primary
+- Sidebar: fundo roxo `#5B4B7A` (variações claras/escuras), itens ativos com leve laranja translúcido
+- Aumentar `--radius` para `0.875rem` (14px) — atende 12–18px solicitado
+- Adicionar gradientes e sombras: `--gradient-primary` (laranja), `--gradient-secondary` (roxo), `--shadow-soft`, `--shadow-elegant`, `--shadow-card`
+- Tema dark equivalente preservando contraste
 
-## 3. Exclusão em Agenda (`src/pages/Sessions.tsx`)
-- Adicionar botão lixeira na linha da agenda e também na linha de cada alocação (dentro do expand).
-- Para agenda: verificar `event_assignments` da sessão; se houver, mostrar confirmação avisando "X profissionais alocados serão removidos". Excluir `event_assignments` (where session_id) e depois `event_sessions`.
-- Para alocação: confirmação simples e `delete` em `event_assignments`.
-- Recarregar lista/expand após.
+## 2. Tailwind (`tailwind.config.ts`)
+- Estender `primary` com `hover` e `glow`
+- Adicionar cor `light-accent`
+- Manter as demais cores semânticas como estão
 
-## 4. Correção de conflitos de horário (`src/pages/Sessions.tsx`)
-Hoje a função `hasConflict` marca conflito sempre que duas sessões se sobrepõem no tempo, mesmo que sejam de eventos diferentes ou tenham profissionais distintos — o que não é um conflito real.
+## 3. Logo da empresa
+- Copiar `user-uploads://logo_2.png` para `src/assets/logo.png` (já feito)
+- Substituir o ícone `Mic` por `<img src={logo} />` em:
+  - `src/components/AppSidebar.tsx` (header — versão expandida e colapsada, em circle)
+  - `src/pages/Login.tsx` (cabeçalho do card)
+- Atualizar `index.html` com favicon apontando para a logo
 
-Nova lógica:
-- Conflito real = mesmo **profissional alocado** em duas sessões com sobreposição de horário.
-- Carregar todas as alocações (uma vez, ao montar a lista) num mapa `sessionId -> interpreter_ids[]`.
-- `hasConflict(s)` retorna true se existir outra sessão `s'` (status ≠ cancelada) onde:
-  - `s.session_date === s'.session_date`
-  - há sobreposição de `start_time/end_time`
-  - existe pelo menos um `interpreter_id` em comum entre as alocações de `s` e `s'`
-- Tooltip do ícone passa a indicar qual profissional está em conflito (ex.: "Conflito: João Silva também alocado em outra agenda neste horário").
-- Se a sessão não tiver alocações, nunca marcar conflito.
+## 4. Login (`src/pages/Login.tsx`)
+- Fundo com gradiente sutil laranja→bege e blobs decorativos
+- Card com efeito `glass` (utilitário CSS), `shadow-elegant`, `rounded-2xl`
+- Logo grande no topo, título "Nosso Mundo Talentos"
+- Botão CTA com gradiente laranja (`gradient-primary` + `shadow-elegant`)
 
-## Observações técnicas
-- RLS atual já permite `DELETE` para admin via "Admin can manage" (ALL). Como todos os 3 usuários são admin, a exclusão funcionará.
-- `delete_event_cascade` será criado via migração para garantir atomicidade e evitar múltiplas chamadas do client.
+## 5. Polimento global (sem refatorar páginas)
+A maior parte dos componentes usa tokens semânticos (`bg-primary`, `bg-card`, etc.), então herdarão o novo tema automaticamente. Ajustes pontuais:
+- `src/components/AppLayout.tsx` / sidebar: garantir que itens ativos usem `sidebar-accent` com leve tom laranja
+- Botão "default" no shadcn já usa `bg-primary` — passará a ter gradiente via classe utilitária aplicada nos CTAs principais quando necessário (mantém variantes existentes)
+
+## Arquivos alterados
+- `src/index.css` — tokens, gradientes, sombras, utilitários `.glass`, `.gradient-primary`, `.shadow-elegant`
+- `tailwind.config.ts` — extends de `primary.hover`, `primary.glow`, `light-accent`
+- `src/components/AppSidebar.tsx` — logo + estilo do header
+- `src/pages/Login.tsx` — novo layout premium com glass + gradiente
+- `index.html` — favicon
+- `src/assets/logo.png` — asset da logo (já copiado)
