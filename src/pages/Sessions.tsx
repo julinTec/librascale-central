@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus, AlertTriangle, Trash2 } from 'lucide-react';
 import { SCHEDULE_STATUS_V2_LABELS, SCHEDULE_STATUS_V2_COLORS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_MODE_LABELS, EVENT_MODALITY_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -37,7 +38,9 @@ export default function Agenda() {
   const [assignForm, setAssignForm] = useState(emptyAssignment);
   const [editingAssign, setEditingAssign] = useState<any>(null);
 
-  useEffect(() => { load(); loadEvents(); loadInterpreters(); }, []);
+  const [allAssignmentsMap, setAllAssignmentsMap] = useState<Record<string, { interpreter_id: string; full_name: string }[]>>({});
+
+  useEffect(() => { load(); loadEvents(); loadInterpreters(); loadAllAssignments(); }, []);
 
   const load = async () => {
     const { data } = await supabase.from('event_sessions').select('*, events(event_name, clients(name))').order('session_date', { ascending: false });
@@ -59,22 +62,55 @@ export default function Agenda() {
     setAssignments(prev => ({ ...prev, [sessionId]: data || [] }));
   };
 
+  const loadAllAssignments = async () => {
+    const { data } = await supabase.from('event_assignments').select('session_id, interpreter_id, interpreters(full_name)');
+    const map: Record<string, { interpreter_id: string; full_name: string }[]> = {};
+    (data || []).forEach((a: any) => {
+      if (!map[a.session_id]) map[a.session_id] = [];
+      map[a.session_id].push({ interpreter_id: a.interpreter_id, full_name: a.interpreters?.full_name || '' });
+    });
+    setAllAssignmentsMap(map);
+  };
+
   const toggleExpand = (id: string) => {
     const next = new Set(expanded);
     if (next.has(id)) { next.delete(id); } else { next.add(id); loadAssignments(id); }
     setExpanded(next);
   };
 
-  // Check for time conflicts
-  const hasConflict = (s: any) => {
-    return sessions.some(other =>
-      other.id !== s.id &&
-      other.session_date === s.session_date &&
-      other.status !== 'cancelada' &&
-      s.status !== 'cancelada' &&
-      other.start_time < s.end_time &&
-      other.end_time > s.start_time
-    );
+  // Conflict = same professional allocated to overlapping sessions on same date
+  const getConflictNames = (s: any): string[] => {
+    if (s.status === 'cancelada') return [];
+    const myAssigns = allAssignmentsMap[s.id] || [];
+    if (myAssigns.length === 0) return [];
+    const conflicts = new Set<string>();
+    sessions.forEach(other => {
+      if (other.id === s.id || other.status === 'cancelada') return;
+      if (other.session_date !== s.session_date) return;
+      if (!(other.start_time < s.end_time && other.end_time > s.start_time)) return;
+      const otherAssigns = allAssignmentsMap[other.id] || [];
+      myAssigns.forEach(m => {
+        if (otherAssigns.some(o => o.interpreter_id === m.interpreter_id)) {
+          conflicts.add(m.full_name);
+        }
+      });
+    });
+    return Array.from(conflicts);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    await supabase.from('event_assignments').delete().eq('session_id', sessionId);
+    const { error } = await supabase.from('event_sessions').delete().eq('id', sessionId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Agenda excluída' });
+    load(); loadAllAssignments();
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string, sessionId: string) => {
+    const { error } = await supabase.from('event_assignments').delete().eq('id', assignmentId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Alocação removida' });
+    loadAssignments(sessionId); loadAllAssignments();
   };
 
   const handleSave = async () => {
@@ -199,7 +235,14 @@ export default function Agenda() {
                     <TableCell className="text-sm">{EVENT_MODALITY_LABELS[s.modality] || s.modality}</TableCell>
                     <TableCell><Badge className={SCHEDULE_STATUS_V2_COLORS[s.status]}>{SCHEDULE_STATUS_V2_LABELS[s.status]}</Badge></TableCell>
                     <TableCell>
-                      {hasConflict(s) && <span title="Conflito de horário"><AlertTriangle className="h-4 w-4 text-warning" /></span>}
+                      {(() => {
+                        const conflicts = getConflictNames(s);
+                        return conflicts.length > 0 ? (
+                          <span title={`Conflito: ${conflicts.join(', ')} também alocado(s) em outra agenda neste horário`}>
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          </span>
+                        ) : null;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -207,6 +250,25 @@ export default function Agenda() {
                         <Button variant="ghost" size="icon" title="Alocar profissional" onClick={() => {
                           setAssignSessionId(s.id); setEditingAssign(null); setAssignForm(emptyAssignment); setAssignOpen(true);
                         }}><UserPlus className="h-4 w-4" /></Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir agenda?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {(allAssignmentsMap[s.id]?.length || 0) > 0
+                                  ? `Esta agenda possui ${allAssignmentsMap[s.id]?.length} profissional(is) alocado(s). Todas as alocações serão removidas.`
+                                  : 'Esta ação não pode ser desfeita.'}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteSession(s.id)}>Excluir</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -237,18 +299,35 @@ export default function Agenda() {
                                   <TableCell>R$ {Number(a.transport_final || 0).toFixed(2)}</TableCell>
                                   <TableCell><Badge className={PAYMENT_STATUS_COLORS[a.payment_status]}>{PAYMENT_STATUS_LABELS[a.payment_status]}</Badge></TableCell>
                                   <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => {
-                                      setAssignSessionId(s.id); setEditingAssign(a);
-                                      setAssignForm({
-                                        interpreter_id: a.interpreter_id, service_role: a.service_role || a.role || '',
-                                        payment_mode: a.payment_mode || 'por_sessao', quantity: a.quantity || 1,
-                                        unit_value: a.unit_value || 0, total_value: a.total_value || 0,
-                                        fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0,
-                                        transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0,
-                                        notes: a.notes || '',
-                                      });
-                                      setAssignOpen(true);
-                                    }}><Pencil className="h-3 w-3" /></Button>
+                                    <div className="flex gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => {
+                                        setAssignSessionId(s.id); setEditingAssign(a);
+                                        setAssignForm({
+                                          interpreter_id: a.interpreter_id, service_role: a.service_role || a.role || '',
+                                          payment_mode: a.payment_mode || 'por_sessao', quantity: a.quantity || 1,
+                                          unit_value: a.unit_value || 0, total_value: a.total_value || 0,
+                                          fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0,
+                                          transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0,
+                                          notes: a.notes || '',
+                                        });
+                                        setAssignOpen(true);
+                                      }}><Pencil className="h-3 w-3" /></Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="icon"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Remover alocação?</AlertDialogTitle>
+                                            <AlertDialogDescription>O profissional será desvinculado desta agenda.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteAssignment(a.id, s.id)}>Remover</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}

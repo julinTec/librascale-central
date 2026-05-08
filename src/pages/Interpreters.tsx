@@ -10,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Pencil } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PROFESSIONAL_TYPE_LABELS } from '@/lib/constants';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const emptyForm = {
   full_name: '', cpf: '', phone: '', email: '', employment_type: '',
@@ -65,6 +66,18 @@ export default function Interpreters() {
     setOpen(true);
   };
 
+  const handleDelete = async (i: any) => {
+    const { count } = await supabase.from('event_assignments').select('id', { count: 'exact', head: true }).eq('interpreter_id', i.id);
+    if ((count || 0) > 0) {
+      toast({ title: 'Não é possível excluir', description: 'Profissional possui alocações vinculadas. Inative em vez de excluir.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('interpreters').delete().eq('id', i.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Profissional excluído' });
+    load();
+  };
+
   const filtered = items.filter(i => i.full_name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -108,7 +121,26 @@ export default function Interpreters() {
                     <Badge variant={i.is_active ? 'default' : 'secondary'}>{i.is_active ? 'Ativo' : 'Inativo'}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="w-4 h-4" /></Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="w-4 h-4" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon"><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir profissional?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação não pode ser desfeita. Profissionais com alocações vinculadas não podem ser excluídos.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(i)}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
