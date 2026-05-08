@@ -11,6 +11,7 @@ import {
   SidebarHeader, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
+import logo from '@/assets/logo.png';
 
 const menuItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -34,21 +35,20 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Mic className="w-4 h-4 text-sidebar-primary-foreground" />
+        {!collapsed ? (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+              <img src={logo} alt="Nosso Mundo Talentos" className="w-full h-full object-cover" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-sidebar-foreground">Nosso Mundo</h2>
-              <p className="text-xs text-sidebar-foreground/60">Gestão de Eventos</p>
+              <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">Nosso Mundo</h2>
+              <p className="text-xs text-sidebar-foreground/60">Talentos</p>
             </div>
           </div>
-        )}
-        {collapsed && (
+        ) : (
           <div className="flex justify-center">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Mic className="w-4 h-4 text-sidebar-primary-foreground" />
+            <div className="w-9 h-9 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+              <img src={logo} alt="Nosso Mundo Talentos" className="w-full h-full object-cover" />
             </div>
           </div>
         )}
