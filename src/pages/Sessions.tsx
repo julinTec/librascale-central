@@ -299,18 +299,35 @@ export default function Agenda() {
                                   <TableCell>R$ {Number(a.transport_final || 0).toFixed(2)}</TableCell>
                                   <TableCell><Badge className={PAYMENT_STATUS_COLORS[a.payment_status]}>{PAYMENT_STATUS_LABELS[a.payment_status]}</Badge></TableCell>
                                   <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => {
-                                      setAssignSessionId(s.id); setEditingAssign(a);
-                                      setAssignForm({
-                                        interpreter_id: a.interpreter_id, service_role: a.service_role || a.role || '',
-                                        payment_mode: a.payment_mode || 'por_sessao', quantity: a.quantity || 1,
-                                        unit_value: a.unit_value || 0, total_value: a.total_value || 0,
-                                        fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0,
-                                        transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0,
-                                        notes: a.notes || '',
-                                      });
-                                      setAssignOpen(true);
-                                    }}><Pencil className="h-3 w-3" /></Button>
+                                    <div className="flex gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => {
+                                        setAssignSessionId(s.id); setEditingAssign(a);
+                                        setAssignForm({
+                                          interpreter_id: a.interpreter_id, service_role: a.service_role || a.role || '',
+                                          payment_mode: a.payment_mode || 'por_sessao', quantity: a.quantity || 1,
+                                          unit_value: a.unit_value || 0, total_value: a.total_value || 0,
+                                          fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0,
+                                          transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0,
+                                          notes: a.notes || '',
+                                        });
+                                        setAssignOpen(true);
+                                      }}><Pencil className="h-3 w-3" /></Button>
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="ghost" size="icon"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Remover alocação?</AlertDialogTitle>
+                                            <AlertDialogDescription>O profissional será desvinculado desta agenda.</AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDeleteAssignment(a.id, s.id)}>Remover</AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </div>
                                   </TableCell>
                                 </TableRow>
                               ))}
