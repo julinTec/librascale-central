@@ -31,6 +31,12 @@ export default function SettingsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'operacional' });
 
+  // Edit user
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Tax settings
   const [taxSettings, setTaxSettings] = useState<any[]>([]);
   const [taxOpen, setTaxOpen] = useState(false);
