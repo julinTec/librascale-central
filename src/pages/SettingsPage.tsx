@@ -133,6 +133,8 @@ export default function SettingsPage() {
       toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
     } finally { setSavingEdit(false); }
   };
+
+  const handleSaveTax = async () => {
     const payload = { name: taxForm.name, percentage: Number(taxForm.percentage), is_default: taxForm.is_default };
     if (editingTax) {
       const { error } = await supabase.from('tax_settings').update(payload).eq('id', editingTax.id);
