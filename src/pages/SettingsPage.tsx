@@ -108,7 +108,31 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveTax = async () => {
+  const openEditDialog = (u: any) => {
+    setEditingUser(u);
+    setEditForm({ full_name: u.full_name || '', email: u.email || '', password: '' });
+    setEditOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    if (!editForm.full_name.trim() || !editForm.email.trim()) {
+      toast({ title: 'Erro', description: 'Nome e email são obrigatórios.', variant: 'destructive' }); return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      toast({ title: 'Erro', description: 'Senha deve ter ao menos 6 caracteres.', variant: 'destructive' }); return;
+    }
+    setSavingEdit(true);
+    try {
+      const payload: any = { action: 'update', user_id: editingUser.id, full_name: editForm.full_name.trim(), email: editForm.email.trim() };
+      if (editForm.password) payload.password = editForm.password;
+      await callManageUsers(payload);
+      toast({ title: 'Usuário atualizado' });
+      setEditOpen(false); setEditingUser(null); loadUsers();
+    } catch (err: any) {
+      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+    } finally { setSavingEdit(false); }
+  };
     const payload = { name: taxForm.name, percentage: Number(taxForm.percentage), is_default: taxForm.is_default };
     if (editingTax) {
       const { error } = await supabase.from('tax_settings').update(payload).eq('id', editingTax.id);
