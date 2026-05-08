@@ -31,6 +31,12 @@ export default function SettingsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'operacional' });
 
+  // Edit user
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // Tax settings
   const [taxSettings, setTaxSettings] = useState<any[]>([]);
   const [taxOpen, setTaxOpen] = useState(false);
@@ -100,6 +106,32 @@ export default function SettingsPage() {
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     }
+  };
+
+  const openEditDialog = (u: any) => {
+    setEditingUser(u);
+    setEditForm({ full_name: u.full_name || '', email: u.email || '', password: '' });
+    setEditOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    if (!editForm.full_name.trim() || !editForm.email.trim()) {
+      toast({ title: 'Erro', description: 'Nome e email são obrigatórios.', variant: 'destructive' }); return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      toast({ title: 'Erro', description: 'Senha deve ter ao menos 6 caracteres.', variant: 'destructive' }); return;
+    }
+    setSavingEdit(true);
+    try {
+      const payload: any = { action: 'update', user_id: editingUser.id, full_name: editForm.full_name.trim(), email: editForm.email.trim() };
+      if (editForm.password) payload.password = editForm.password;
+      await callManageUsers(payload);
+      toast({ title: 'Usuário atualizado' });
+      setEditOpen(false); setEditingUser(null); loadUsers();
+    } catch (err: any) {
+      toast({ title: 'Erro ao atualizar', description: err.message, variant: 'destructive' });
+    } finally { setSavingEdit(false); }
   };
 
   const handleSaveTax = async () => {
@@ -231,23 +263,28 @@ export default function SettingsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {!isCurrentUser(u.id) && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
-                              <AlertDialogDescription>Tem certeza que deseja remover <strong>{u.full_name || u.email}</strong>?</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteUser(u.id, u.full_name || u.email)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {!isCurrentUser(u.id) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
+                                <AlertDialogDescription>Tem certeza que deseja remover <strong>{u.full_name || u.email}</strong>?</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteUser(u.id, u.full_name || u.email)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remover</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -325,6 +362,25 @@ export default function SettingsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setTaxOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveTax}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Usuário</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2"><Label>Nome completo</Label><Input value={editForm.full_name} onChange={e => setEditForm(p => ({ ...p, full_name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} /></div>
+            <div className="space-y-2">
+              <Label>Nova senha</Label>
+              <Input type="password" value={editForm.password} onChange={e => setEditForm(p => ({ ...p, password: e.target.value }))} placeholder="Deixe em branco para manter a atual" minLength={6} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <Button onClick={handleUpdateUser} disabled={savingEdit}>{savingEdit ? 'Salvando...' : 'Salvar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

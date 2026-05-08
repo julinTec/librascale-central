@@ -1,18 +1,25 @@
-# Criar 3 usuários admin (migração de usuários)
+# Editar usuários (nome, email, senha)
 
-## Contexto
-Os dados de negócio (17 tabelas) já foram migrados com sucesso. Os 3 usuários do projeto original ainda não existem neste banco.
+## O que será adicionado
+Um botão de editar (ícone lápis) ao lado de cada usuário na tabela de "Usuários e Perfis", abrindo um diálogo para alterar:
+- Nome completo
+- Email
+- Senha (opcional — se em branco, mantém atual)
 
-## Tarefas
-1. Criar os 3 usuários em `auth.users` via `supabase.auth.admin.createUser` preservando os UUIDs originais:
-   - Julio Cezar — juliocezarvieira21@gmail.com
-   - Jefferson Rosa — jefferson.nossomundodiversidade@gmail.com
-   - Administração Nosso Mundo — adm.nossomundotalentos@gmail.com
-2. O trigger `handle_new_user` cria automaticamente `profiles` e `user_roles` com role `operacional`.
-3. Atualizar `user_roles` para `admin` nos 3 registros.
-4. Validar: verificar que `profiles` e `user_roles` têm os 3 registros corretos.
+## Mudanças
 
-## Detalhes técnicos
-- Script Node.js usando `@supabase/supabase-js` com Service Role Key.
-- Senha temporária: `NossoMundo@2026` para todos (usuários trocam depois via "Esqueci minha senha").
-- UUIDs originais preservados para manter integridade das colunas `created_by`.
+### 1. `supabase/functions/manage-users/index.ts`
+Adicionar nova ação `update`:
+- Recebe `user_id`, e opcionalmente `full_name`, `email`, `password`
+- Usa `auth.admin.updateUserById` para alterar email/senha/metadata em `auth.users`
+- Atualiza `profiles` (full_name, email) para refletir na UI
+- Mantém validação de admin existente
+
+### 2. `src/pages/SettingsPage.tsx`
+- Novo state `editingUser` e `editForm`
+- Botão `Pencil` na coluna Ações (ao lado da lixeira), também desabilitado para o próprio usuário logado se desejado — ou habilitado para todos incluindo si mesmo (recomendado para permitir trocar a própria senha)
+- Diálogo de edição com campos: Nome, Email, Nova senha (placeholder "Deixe em branco para manter")
+- Handler `handleUpdateUser` chama `manage-users` com action `update`, recarrega lista e mostra toast
+
+## Observação
+Senha mínima 6 caracteres (validação em backend e frontend). Email novo ficará automaticamente confirmado.
