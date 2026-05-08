@@ -37,7 +37,7 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         {!collapsed ? (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+            <div className="w-10 h-10 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-accent/60">
               <img src={logo} alt="Nosso Mundo Talentos" className="w-full h-full object-cover" />
             </div>
             <div>
@@ -47,7 +47,7 @@ export function AppSidebar() {
           </div>
         ) : (
           <div className="flex justify-center">
-            <div className="w-9 h-9 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-primary/40">
+            <div className="w-9 h-9 rounded-full bg-white shadow-soft flex items-center justify-center overflow-hidden ring-2 ring-accent/60">
               <img src={logo} alt="Nosso Mundo Talentos" className="w-full h-full object-cover" />
             </div>
           </div>
