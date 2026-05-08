@@ -1117,6 +1117,7 @@ export type Database = {
         Args: { _client_id: string }
         Returns: undefined
       }
+      delete_event_cascade: { Args: { _event_id: string }; Returns: undefined }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
