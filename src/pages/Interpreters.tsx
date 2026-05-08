@@ -66,6 +66,18 @@ export default function Interpreters() {
     setOpen(true);
   };
 
+  const handleDelete = async (i: any) => {
+    const { count } = await supabase.from('event_assignments').select('id', { count: 'exact', head: true }).eq('interpreter_id', i.id);
+    if ((count || 0) > 0) {
+      toast({ title: 'Não é possível excluir', description: 'Profissional possui alocações vinculadas. Inative em vez de excluir.', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('interpreters').delete().eq('id', i.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Profissional excluído' });
+    load();
+  };
+
   const filtered = items.filter(i => i.full_name.toLowerCase().includes(search.toLowerCase()));
 
   return (
