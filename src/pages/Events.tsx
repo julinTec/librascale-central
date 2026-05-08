@@ -264,7 +264,31 @@ export default function Events() {
                   </TableCell>
                   <TableCell><Badge className={EVENT_STATUS_COLORS[e.status]}>{EVENT_STATUS_LABELS[e.status]}</Badge></TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(e)}><Pencil className="h-4 w-4" /></Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir evento?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Todas as agendas, alocações de profissionais, despesas, contas a pagar e receitas vinculadas a este evento também serão removidas. Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={async () => {
+                              const { error } = await supabase.rpc('delete_event_cascade', { _event_id: e.id });
+                              if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+                              toast({ title: 'Evento excluído' });
+                              load();
+                            }}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
