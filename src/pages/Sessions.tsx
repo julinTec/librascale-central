@@ -38,7 +38,9 @@ export default function Agenda() {
   const [assignForm, setAssignForm] = useState(emptyAssignment);
   const [editingAssign, setEditingAssign] = useState<any>(null);
 
-  useEffect(() => { load(); loadEvents(); loadInterpreters(); }, []);
+  const [allAssignmentsMap, setAllAssignmentsMap] = useState<Record<string, { interpreter_id: string; full_name: string }[]>>({});
+
+  useEffect(() => { load(); loadEvents(); loadInterpreters(); loadAllAssignments(); }, []);
 
   const load = async () => {
     const { data } = await supabase.from('event_sessions').select('*, events(event_name, clients(name))').order('session_date', { ascending: false });
@@ -60,22 +62,55 @@ export default function Agenda() {
     setAssignments(prev => ({ ...prev, [sessionId]: data || [] }));
   };
 
+  const loadAllAssignments = async () => {
+    const { data } = await supabase.from('event_assignments').select('session_id, interpreter_id, interpreters(full_name)');
+    const map: Record<string, { interpreter_id: string; full_name: string }[]> = {};
+    (data || []).forEach((a: any) => {
+      if (!map[a.session_id]) map[a.session_id] = [];
+      map[a.session_id].push({ interpreter_id: a.interpreter_id, full_name: a.interpreters?.full_name || '' });
+    });
+    setAllAssignmentsMap(map);
+  };
+
   const toggleExpand = (id: string) => {
     const next = new Set(expanded);
     if (next.has(id)) { next.delete(id); } else { next.add(id); loadAssignments(id); }
     setExpanded(next);
   };
 
-  // Check for time conflicts
-  const hasConflict = (s: any) => {
-    return sessions.some(other =>
-      other.id !== s.id &&
-      other.session_date === s.session_date &&
-      other.status !== 'cancelada' &&
-      s.status !== 'cancelada' &&
-      other.start_time < s.end_time &&
-      other.end_time > s.start_time
-    );
+  // Conflict = same professional allocated to overlapping sessions on same date
+  const getConflictNames = (s: any): string[] => {
+    if (s.status === 'cancelada') return [];
+    const myAssigns = allAssignmentsMap[s.id] || [];
+    if (myAssigns.length === 0) return [];
+    const conflicts = new Set<string>();
+    sessions.forEach(other => {
+      if (other.id === s.id || other.status === 'cancelada') return;
+      if (other.session_date !== s.session_date) return;
+      if (!(other.start_time < s.end_time && other.end_time > s.start_time)) return;
+      const otherAssigns = allAssignmentsMap[other.id] || [];
+      myAssigns.forEach(m => {
+        if (otherAssigns.some(o => o.interpreter_id === m.interpreter_id)) {
+          conflicts.add(m.full_name);
+        }
+      });
+    });
+    return Array.from(conflicts);
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    await supabase.from('event_assignments').delete().eq('session_id', sessionId);
+    const { error } = await supabase.from('event_sessions').delete().eq('id', sessionId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Agenda excluída' });
+    load(); loadAllAssignments();
+  };
+
+  const handleDeleteAssignment = async (assignmentId: string, sessionId: string) => {
+    const { error } = await supabase.from('event_assignments').delete().eq('id', assignmentId);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Alocação removida' });
+    loadAssignments(sessionId); loadAllAssignments();
   };
 
   const handleSave = async () => {
