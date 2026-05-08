@@ -75,6 +75,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update") {
+      const { user_id, email, password, full_name } = body;
+      if (!user_id) throw new Error("Missing user_id");
+
+      const attrs: any = {};
+      if (email) attrs.email = email;
+      if (password) {
+        if (password.length < 6) throw new Error("Senha deve ter ao menos 6 caracteres");
+        attrs.password = password;
+      }
+      if (full_name !== undefined) attrs.user_metadata = { full_name };
+
+      if (Object.keys(attrs).length > 0) {
+        const { error: updErr } = await adminClient.auth.admin.updateUserById(user_id, attrs);
+        if (updErr) throw updErr;
+      }
+
+      if (full_name !== undefined || email) {
+        const profileUpdate: any = {};
+        if (full_name !== undefined) profileUpdate.full_name = full_name;
+        if (email) profileUpdate.email = email;
+        const { error: pErr } = await adminClient.from("profiles").update(profileUpdate).eq("id", user_id);
+        if (pErr) throw pErr;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "update_role") {
       const { user_id, role } = body;
       if (!user_id || !role) throw new Error("Missing fields");
