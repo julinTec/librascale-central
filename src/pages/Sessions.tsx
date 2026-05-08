@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus, AlertTriangle, Trash2 } from 'lucide-react';
 import { SCHEDULE_STATUS_V2_LABELS, SCHEDULE_STATUS_V2_COLORS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_MODE_LABELS, EVENT_MODALITY_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
