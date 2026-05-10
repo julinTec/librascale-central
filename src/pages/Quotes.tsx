@@ -62,7 +62,16 @@ export default function Quotes() {
   const [itemQuoteId, setItemQuoteId] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => { load(); loadClients(); }, []);
+  // Pré-cadastros (intakes)
+  const [intakes, setIntakes] = useState<any[]>([]);
+  const [genOpen, setGenOpen] = useState(false);
+  const [genClient, setGenClient] = useState('');
+  const [genExpiryDays, setGenExpiryDays] = useState(30);
+  const [genLink, setGenLink] = useState('');
+  const [genExpiresAt, setGenExpiresAt] = useState<string>('');
+  const [viewIntake, setViewIntake] = useState<any>(null);
+
+  useEffect(() => { load(); loadClients(); loadIntakes(); }, []);
 
   const load = async () => {
     const { data } = await supabase.from('event_quotes').select('*, clients(name)').order('created_at', { ascending: false });
