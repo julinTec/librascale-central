@@ -34,6 +34,22 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { profile, role, signOut } = useAuth();
+  const [intakeCount, setIntakeCount] = useState(0);
+
+  useEffect(() => {
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from('quote_intakes' as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'recebido');
+      setIntakeCount(count || 0);
+    };
+    loadCount();
+    const ch = supabase.channel('sidebar_intakes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_intakes' }, loadCount)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   return (
     <Sidebar collapsible="icon">
