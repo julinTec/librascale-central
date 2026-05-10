@@ -44,6 +44,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/orcamento/preencher/:token" element={<PublicQuoteIntake />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
