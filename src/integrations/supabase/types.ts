@@ -947,6 +947,87 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_intakes: {
+        Row: {
+          assigned_client_id: string | null
+          company_name: string | null
+          converted_quote_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          event_name: string | null
+          expires_at: string
+          id: string
+          modality: string | null
+          observations: string | null
+          referral_source: string | null
+          requester_email: string | null
+          requester_name: string | null
+          requester_phone: string | null
+          service_types: string[]
+          sessions_count: number | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["quote_intake_status"]
+          submitted_at: string | null
+          token: string
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          assigned_client_id?: string | null
+          company_name?: string | null
+          converted_quote_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_name?: string | null
+          expires_at?: string
+          id?: string
+          modality?: string | null
+          observations?: string | null
+          referral_source?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          service_types?: string[]
+          sessions_count?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["quote_intake_status"]
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          assigned_client_id?: string | null
+          company_name?: string | null
+          converted_quote_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          event_name?: string | null
+          expires_at?: string
+          id?: string
+          modality?: string | null
+          observations?: string | null
+          referral_source?: string | null
+          requester_email?: string | null
+          requester_name?: string | null
+          requester_phone?: string | null
+          service_types?: string[]
+          sessions_count?: number | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["quote_intake_status"]
+          submitted_at?: string | null
+          token?: string
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
       schedule_audit_logs: {
         Row: {
           change_reason: string | null
@@ -1220,6 +1301,11 @@ export type Database = {
         | "locutor"
         | "assistente"
         | "outro"
+      quote_intake_status:
+        | "aguardando"
+        | "recebido"
+        | "convertido"
+        | "descartado"
       quote_status:
         | "recebido"
         | "em_orcamento"
@@ -1482,6 +1568,12 @@ export const Constants = {
         "locutor",
         "assistente",
         "outro",
+      ],
+      quote_intake_status: [
+        "aguardando",
+        "recebido",
+        "convertido",
+        "descartado",
       ],
       quote_status: [
         "recebido",

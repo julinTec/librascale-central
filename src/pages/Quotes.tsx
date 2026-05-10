@@ -31,8 +31,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, ArrowRightCircle, Search, Trash2, FileDown } from 'lucide-react';
+import { Plus, Pencil, ArrowRightCircle, Search, Trash2, FileDown, Link2, Copy, Eye, X } from 'lucide-react';
 import { QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, SERVICE_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
@@ -61,7 +62,16 @@ export default function Quotes() {
   const [itemQuoteId, setItemQuoteId] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => { load(); loadClients(); }, []);
+  // Pré-cadastros (intakes)
+  const [intakes, setIntakes] = useState<any[]>([]);
+  const [genOpen, setGenOpen] = useState(false);
+  const [genClient, setGenClient] = useState('');
+  const [genExpiryDays, setGenExpiryDays] = useState(30);
+  const [genLink, setGenLink] = useState('');
+  const [genExpiresAt, setGenExpiresAt] = useState<string>('');
+  const [viewIntake, setViewIntake] = useState<any>(null);
+
+  useEffect(() => { load(); loadClients(); loadIntakes(); }, []);
 
   const load = async () => {
     const { data } = await supabase.from('event_quotes').select('*, clients(name)').order('created_at', { ascending: false });
@@ -77,6 +87,91 @@ export default function Quotes() {
     const { data } = await supabase.from('budget_items').select('*').eq('quote_id', quoteId).order('created_at');
     setBudgetItems(data || []);
   };
+
+  const loadIntakes = async () => {
+    const { data } = await supabase.from('quote_intakes' as any).select('*').order('created_at', { ascending: false });
+    setIntakes((data as any) || []);
+  };
+
+  useEffect(() => {
+    const ch = supabase.channel('quote_intakes_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_intakes' }, () => loadIntakes())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const generateLink = async () => {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + genExpiryDays);
+    const { data, error } = await supabase.from('quote_intakes' as any).insert({
+      created_by: user?.id,
+      assigned_client_id: genClient || null,
+      expires_at: expires.toISOString(),
+    }).select('token, expires_at').single();
+    if (error || !data) {
+      toast({ title: 'Erro ao gerar link', description: error?.message, variant: 'destructive' });
+      return;
+    }
+    const url = `${window.location.origin}/orcamento/preencher/${(data as any).token}`;
+    setGenLink(url);
+    setGenExpiresAt((data as any).expires_at);
+    loadIntakes();
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Link copiado!' });
+    } catch {
+      toast({ title: 'Não foi possível copiar', variant: 'destructive' });
+    }
+  };
+
+  const intakeServiceLabel = (k: string) => ({
+    interprete_libras: 'Intérprete de Libras', audiodescritor: 'Audiodescritor',
+    consultor: 'Consultor', locutor: 'Locutor', assistente: 'Assistente', outro: 'Outro',
+  } as Record<string, string>)[k] || k;
+
+  const convertIntakeToQuote = (i: any) => {
+    setEditing(null);
+    setBudgetItems([]);
+    setForm({
+      client_id: i.assigned_client_id || '',
+      event_name: i.event_name || '',
+      event_type: (i.service_types || []).map(intakeServiceLabel).join(', '),
+      venue: i.venue || '',
+      start_date: i.start_date || '',
+      end_date: i.end_date || '',
+      sessions_count: i.sessions_count || 1,
+      quoted_value: 0,
+      status: 'recebido',
+      source_channel: 'Pré-cadastro',
+      attention_to: i.requester_name || '',
+      payment_terms: '',
+      observations: [
+        i.company_name && `Empresa: ${i.company_name}`,
+        i.requester_email && `E-mail: ${i.requester_email}`,
+        i.requester_phone && `Telefone: ${i.requester_phone}`,
+        i.modality && `Modalidade: ${i.modality}`,
+        i.description && `\nDescrição: ${i.description}`,
+        i.observations && `\nObservações do cliente: ${i.observations}`,
+        i.referral_source && `\nComo nos conheceu: ${i.referral_source}`,
+      ].filter(Boolean).join('\n'),
+    });
+    setOpen(true);
+    // Marca como convertido após salvar — fica a cargo do usuário; aqui só pré-preenche.
+    // Marcação automática: ouvir o save? Mais simples: marcar agora como "convertido".
+    supabase.from('quote_intakes' as any).update({ status: 'convertido' }).eq('id', i.id).then(() => loadIntakes());
+  };
+
+  const discardIntake = async (id: string) => {
+    await supabase.from('quote_intakes' as any).update({ status: 'descartado' }).eq('id', id);
+    loadIntakes();
+  };
+
+  const intakeUrl = (token: string) => `${window.location.origin}/orcamento/preencher/${token}`;
+
+  const intakesPendentes = intakes.filter(i => i.status === 'recebido');
 
   const handleSave = async () => {
     if (!form.event_name) {
@@ -373,72 +468,243 @@ export default function Quotes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Orçamentos</h1>
-        <Button onClick={() => { setEditing(null); setForm(emptyForm); setBudgetItems([]); setOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Orçamento
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setGenClient(''); setGenExpiryDays(30); setGenLink(''); setGenExpiresAt(''); setGenOpen(true); }}>
+            <Link2 className="mr-2 h-4 w-4" /> Gerar link de pré-cadastro
+          </Button>
+          <Button onClick={() => { setEditing(null); setForm(emptyForm); setBudgetItems([]); setOpen(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Orçamento
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por evento ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {Object.entries(QUOTE_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+      <Tabs defaultValue="orcamentos">
+        <TabsList>
+          <TabsTrigger value="orcamentos">Orçamentos</TabsTrigger>
+          <TabsTrigger value="intakes">
+            Pré-cadastros{intakesPendentes.length > 0 && (
+              <Badge className="ml-2 bg-primary text-primary-foreground">{intakesPendentes.length}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Evento</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Período</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[160px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(q => (
-                <TableRow key={q.id}>
-                  <TableCell className="font-medium">{q.event_name}</TableCell>
-                  <TableCell>{(q.clients as any)?.name || '—'}</TableCell>
-                  <TableCell>R$ {Number(q.quoted_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {q.start_date ? format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yy') : '—'}
-                    {q.end_date ? ` - ${format(new Date(q.end_date + 'T12:00:00'), 'dd/MM/yy')}` : ''}
-                  </TableCell>
-                  <TableCell><Badge className={QUOTE_STATUS_COLORS[q.status]}>{QUOTE_STATUS_LABELS[q.status]}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(q)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" title="Exportar PDF" onClick={() => exportPDF(q)}><FileDown className="h-4 w-4" /></Button>
-                      {(q.status === 'enviado' || q.status === 'aprovado') && (
-                        <Button variant="ghost" size="icon" title="Converter em Evento" onClick={() => convertToEvent(q)}>
-                          <ArrowRightCircle className="h-4 w-4 text-success" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" title="Excluir" onClick={() => setDeleteId(q.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum orçamento encontrado.</TableCell></TableRow>
+        <TabsContent value="orcamentos" className="mt-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-3 mb-4">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Buscar por evento ou cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(QUOTE_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[160px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(q => (
+                    <TableRow key={q.id}>
+                      <TableCell className="font-medium">{q.event_name}</TableCell>
+                      <TableCell>{(q.clients as any)?.name || '—'}</TableCell>
+                      <TableCell>R$ {Number(q.quoted_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {q.start_date ? format(new Date(q.start_date + 'T12:00:00'), 'dd/MM/yy') : '—'}
+                        {q.end_date ? ` - ${format(new Date(q.end_date + 'T12:00:00'), 'dd/MM/yy')}` : ''}
+                      </TableCell>
+                      <TableCell><Badge className={QUOTE_STATUS_COLORS[q.status]}>{QUOTE_STATUS_LABELS[q.status]}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" title="Editar" onClick={() => openEdit(q)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" title="Exportar PDF" onClick={() => exportPDF(q)}><FileDown className="h-4 w-4" /></Button>
+                          {(q.status === 'enviado' || q.status === 'aprovado') && (
+                            <Button variant="ghost" size="icon" title="Converter em Evento" onClick={() => convertToEvent(q)}>
+                              <ArrowRightCircle className="h-4 w-4 text-success" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" title="Excluir" onClick={() => setDeleteId(q.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum orçamento encontrado.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="intakes" className="mt-4">
+          <Card>
+            <CardContent className="p-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Solicitante</TableHead>
+                    <TableHead>Evento</TableHead>
+                    <TableHead>Recebido em</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[200px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {intakes.map(i => {
+                    const statusLabel = { aguardando: 'Aguardando', recebido: 'Recebido', convertido: 'Convertido', descartado: 'Descartado' }[i.status as string] || i.status;
+                    return (
+                      <TableRow key={i.id}>
+                        <TableCell>
+                          <div className="font-medium">{i.requester_name || <span className="text-muted-foreground italic">— ainda não preencheu —</span>}</div>
+                          {i.company_name && <div className="text-xs text-muted-foreground">{i.company_name}</div>}
+                        </TableCell>
+                        <TableCell>{i.event_name || '—'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {i.submitted_at ? format(new Date(i.submitted_at), 'dd/MM/yy HH:mm') : `link válido até ${format(new Date(i.expires_at), 'dd/MM/yy')}`}
+                        </TableCell>
+                        <TableCell><Badge variant="outline">{statusLabel}</Badge></TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" title="Visualizar" onClick={() => setViewIntake(i)} disabled={i.status === 'aguardando'}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {i.status === 'recebido' && (
+                              <Button variant="ghost" size="icon" title="Converter em orçamento" onClick={() => convertIntakeToQuote(i)}>
+                                <ArrowRightCircle className="h-4 w-4 text-success" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="icon" title="Copiar link" onClick={() => copyLink(intakeUrl(i.token))}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                            {i.status !== 'descartado' && (
+                              <Button variant="ghost" size="icon" title="Descartar" onClick={() => discardIntake(i.id)}>
+                                <X className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {intakes.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum pré-cadastro ainda.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Modal: Gerar link */}
+      <Dialog open={genOpen} onOpenChange={setGenOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Gerar link de pré-cadastro</DialogTitle></DialogHeader>
+          {!genLink ? (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Cliente (opcional)</Label>
+                <Select value={genClient || '__none__'} onValueChange={v => setGenClient(v === '__none__' ? '' : v)}>
+                  <SelectTrigger><SelectValue placeholder="Sem cliente" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Sem cliente</SelectItem>
+                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Validade do link</Label>
+                <Select value={String(genExpiryDays)} onValueChange={v => setGenExpiryDays(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 dias</SelectItem>
+                    <SelectItem value="15">15 dias</SelectItem>
+                    <SelectItem value="30">30 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setGenOpen(false)}>Cancelar</Button>
+                <Button onClick={generateLink}>Gerar link</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Link público</Label>
+                <Input readOnly value={genLink} onClick={(e) => (e.target as HTMLInputElement).select()} />
+                {genExpiresAt && (
+                  <p className="text-xs text-muted-foreground mt-2">Válido até {format(new Date(genExpiresAt), 'dd/MM/yyyy')}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button onClick={() => copyLink(genLink)}>
+                  <Copy className="mr-2 h-4 w-4" /> Copiar link
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Visualizar intake */}
+      <Dialog open={!!viewIntake} onOpenChange={(o) => !o && setViewIntake(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Pré-cadastro recebido</DialogTitle></DialogHeader>
+          {viewIntake && (
+            <div className="space-y-4 py-4 text-sm">
+              <section>
+                <h4 className="font-semibold mb-2">Solicitante</h4>
+                <p><strong>Nome:</strong> {viewIntake.requester_name}</p>
+                {viewIntake.company_name && <p><strong>Empresa:</strong> {viewIntake.company_name}</p>}
+                <p><strong>E-mail:</strong> {viewIntake.requester_email}</p>
+                <p><strong>Telefone:</strong> {viewIntake.requester_phone}</p>
+              </section>
+              <section>
+                <h4 className="font-semibold mb-2">Evento</h4>
+                <p><strong>Nome:</strong> {viewIntake.event_name}</p>
+                <p><strong>Tipo de serviço:</strong> {(viewIntake.service_types || []).map(intakeServiceLabel).join(', ')}</p>
+                <p><strong>Modalidade:</strong> {viewIntake.modality}</p>
+                {viewIntake.venue && <p><strong>Local:</strong> {viewIntake.venue}</p>}
+                <p><strong>Período:</strong> {viewIntake.start_date} {viewIntake.end_date ? `→ ${viewIntake.end_date}` : ''}</p>
+                <p><strong>Sessões:</strong> {viewIntake.sessions_count}</p>
+                {viewIntake.description && <p className="mt-2 whitespace-pre-wrap"><strong>Descrição:</strong> {viewIntake.description}</p>}
+              </section>
+              {(viewIntake.observations || viewIntake.referral_source) && (
+                <section>
+                  <h4 className="font-semibold mb-2">Outros</h4>
+                  {viewIntake.observations && <p className="whitespace-pre-wrap"><strong>Observações:</strong> {viewIntake.observations}</p>}
+                  {viewIntake.referral_source && <p><strong>Como nos conheceu:</strong> {viewIntake.referral_source}</p>}
+                </section>
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </div>
+          )}
+          <DialogFooter>
+            {viewIntake?.status === 'recebido' && (
+              <Button onClick={() => { convertIntakeToQuote(viewIntake); setViewIntake(null); }}>
+                <ArrowRightCircle className="mr-2 h-4 w-4" /> Converter em orçamento
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setViewIntake(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

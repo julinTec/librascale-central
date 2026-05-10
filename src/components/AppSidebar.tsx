@@ -5,6 +5,9 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -31,6 +34,22 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const location = useLocation();
   const { profile, role, signOut } = useAuth();
+  const [intakeCount, setIntakeCount] = useState(0);
+
+  useEffect(() => {
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from('quote_intakes' as any)
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'recebido');
+      setIntakeCount(count || 0);
+    };
+    loadCount();
+    const ch = supabase.channel('sidebar_intakes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_intakes' }, loadCount)
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   return (
     <Sidebar collapsible="icon">
@@ -59,16 +78,24 @@ export function AppSidebar() {
           <SidebarGroupLabel className="text-sidebar-foreground/50">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <NavLink to={item.url} end activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const showBadge = item.url === '/orcamentos' && intakeCount > 0;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                      <NavLink to={item.url} end activeClassName="bg-sidebar-accent text-sidebar-accent-foreground">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span className="flex-1">{item.title}</span>}
+                        {showBadge && (
+                          <Badge className="ml-auto bg-primary text-primary-foreground h-5 min-w-5 px-1.5 text-[10px]">
+                            {intakeCount}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
