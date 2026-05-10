@@ -1,53 +1,40 @@
-## Rebrand visual: nova identidade NM (azul profundo + cyan + dourado)
+## Objetivo
 
-Substituir a paleta laranja/roxa atual pela nova identidade corporativa premium estilo SaaS enterprise, e trocar a logo em todo o sistema pela nova arte (NM em círculo azul).
+No modal "Novo Evento" (página Eventos), trocar o campo **"Tipo do Evento"** (seletor único) por **"Tipo de Serviço"** (seletor com múltipla seleção), permitindo escolher mais de uma opção por evento.
 
-### 1. Substituir a logo
-- Copiar `user-uploads://logo_3.png` para `src/assets/logo.png` (sobrescreve a atual — todos os imports continuam funcionando: `AppSidebar`, `Login`)
-- Copiar também para `public/favicon.png` (favicon já aponta para esse arquivo no `index.html`)
+## Mudanças
 
-### 2. Design tokens (`src/index.css`)
-Reescrever os tokens HSL com a nova paleta:
-- `--background` `#F4F7FA` · `--card`/`--popover`/`--surface` `#FFFFFF`
-- `--border`/`--input` `#D4DAE2`
-- `--foreground` `#052863` (azul quase preto) · `--muted-foreground` cinza-azulado
-- `--primary` `#052863` · `--primary-hover` `#043F8B` · `--primary-glow` `#6AC2E5`
-- `--secondary` `#043F8B`
-- `--accent` `#6AC2E5` (cyan tecnológico) · `--light-accent` `#6D6B91` (premium purple)
-- `--gold` `#C4CD72` (destaques VIP — novo token)
-- `--ring` = cyan accent (glow sutil em foco/ativo)
-- `--radius` `0.875rem` (cantos suaves modernos)
-- Sidebar: fundo `#052863` com itens ativos em azul `#043F8B` + borda esquerda cyan
-- Gradientes/sombras:
-  - `--gradient-primary`: linear `#052863 → #043F8B`
-  - `--gradient-accent`: linear `#043F8B → #6AC2E5`
-  - `--shadow-soft`, `--shadow-elegant` (glow cyan sutil), `--shadow-card`
-- Tema dark equivalente preservando contraste
-- Manter utilitários `.glass`, `.gradient-primary`, `.gradient-secondary`, `.shadow-elegant`, e adicionar `.gradient-accent`, `.text-gold`, `.border-gold`
+### 1. Banco de dados (migração)
 
-### 3. Tailwind (`tailwind.config.ts`)
-- Adicionar token `gold` (`hsl(var(--gold))`)
-- Manter `primary.hover`, `primary.glow` e `light-accent`
-- Sem outras mudanças estruturais (componentes herdam via tokens semânticos)
+Adicionar uma nova coluna `service_types text[]` na tabela `events`:
 
-### 4. Login (`src/pages/Login.tsx`)
-- Atualizar fundo: gradiente sutil `#F4F7FA → branco` com blobs decorativos em cyan/azul (substituindo blobs laranja)
-- Card mantém glass + `shadow-elegant` (agora com glow cyan)
-- Título já é "Nosso Mundo Talentos" — manter
-- Botão CTA usa `gradient-primary` (azul profundo) — herdado automaticamente
+- Tipo: `text[]` (array de textos), default `'{}'`.
+- Backfill: copiar o valor atual de `event_type` para dentro do array em todos os registros existentes (`service_types = ARRAY[event_type::text]`).
+- Manter a coluna `event_type` por enquanto (compatibilidade), preenchida automaticamente com o **primeiro** item do array via trigger, para não quebrar nada externo.
 
-### 5. Sidebar (`src/components/AppSidebar.tsx`)
-- Manter estrutura; logo já vem do mesmo path
-- Ajustar ring do avatar de `ring-primary/40` para `ring-accent/50` (glow cyan ao redor da logo)
-- Item ativo: barra esquerda cyan sutil (via classe utilitária no `NavLink` activeClassName)
+### 2. UI — `src/pages/Events.tsx`
 
-### 6. Polimento global
-A maioria das páginas (`Dashboard`, `Events`, `Interpreters`, `Sessions`, `Finance`, etc.) usa tokens semânticos (`bg-card`, `text-primary`, `bg-primary`, `border`, `bg-muted`) e herda automaticamente. Sem refatoração de páginas individuais nesta etapa — o resultado é um rebrand completo com mudança mínima de código.
+- Renomear o label do campo de "Tipo do Evento" para **"Tipo de Serviço"**.
+- Substituir o `<Select>` (única escolha) por um componente de **multi-select** baseado em `Popover` + `Command` (padrão shadcn) ou `DropdownMenuCheckboxItem`, listando as mesmas opções de `EVENT_TYPE_LABELS`:
+  - Evento Pontual, Temporada, Palestra, Gravação, Serviço Administrativo, Vídeo Remoto, Outro.
+- Estado do formulário: `service_types: string[]` (substitui `event_type: string`).
+- Validação: pelo menos 1 opção selecionada.
+- Ao salvar:
+  - Gravar `service_types` (array completo).
+  - Gravar `event_type` com o primeiro item selecionado (compat).
+- Ao editar um evento existente: carregar `service_types` (ou cair no `[event_type]` se vazio).
+- Na **tabela de listagem**: mostrar os tipos como múltiplos badges lado a lado (um por item).
 
-### Arquivos alterados
-- `src/assets/logo.png` (substituído)
-- `public/favicon.png` (substituído)
-- `src/index.css` — paleta + gradientes + sombras + token gold
-- `tailwind.config.ts` — adicionar `gold`
-- `src/pages/Login.tsx` — blobs/fundo na nova paleta
-- `src/components/AppSidebar.tsx` — ring cyan + indicador ativo
+### 3. Constantes / Labels
+
+Renomear referências visuais de "Tipo de Evento" → "Tipo de Serviço" apenas no contexto do modal/tabela de eventos. As chaves do enum (`evento_pontual`, etc.) permanecem iguais para não quebrar dados.
+
+## Fora de escopo
+
+- Página de **Orçamentos** (`Quotes.tsx`) não será alterada — lá o campo é texto livre e tem outro propósito.
+- Nenhuma mudança em Financeiro, Agenda, Dashboard ou Relatórios.
+
+## Detalhes técnicos
+
+- Migração via `supabase--migration` adicionando coluna + backfill + trigger `BEFORE INSERT/UPDATE` em `events` que sincroniza `event_type := service_types[1]` quando `service_types` não estiver vazio.
+- Multi-select: usar `Popover` + `Command` (`CommandInput`, `CommandItem` com `Check`) — já presente em `src/components/ui`. Trigger é um `Button variant="outline"` mostrando os labels selecionados ou "Selecione...".
