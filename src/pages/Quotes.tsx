@@ -88,6 +88,91 @@ export default function Quotes() {
     setBudgetItems(data || []);
   };
 
+  const loadIntakes = async () => {
+    const { data } = await supabase.from('quote_intakes' as any).select('*').order('created_at', { ascending: false });
+    setIntakes((data as any) || []);
+  };
+
+  useEffect(() => {
+    const ch = supabase.channel('quote_intakes_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_intakes' }, () => loadIntakes())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  const generateLink = async () => {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + genExpiryDays);
+    const { data, error } = await supabase.from('quote_intakes' as any).insert({
+      created_by: user?.id,
+      assigned_client_id: genClient || null,
+      expires_at: expires.toISOString(),
+    }).select('token, expires_at').single();
+    if (error || !data) {
+      toast({ title: 'Erro ao gerar link', description: error?.message, variant: 'destructive' });
+      return;
+    }
+    const url = `${window.location.origin}/orcamento/preencher/${(data as any).token}`;
+    setGenLink(url);
+    setGenExpiresAt((data as any).expires_at);
+    loadIntakes();
+  };
+
+  const copyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: 'Link copiado!' });
+    } catch {
+      toast({ title: 'Não foi possível copiar', variant: 'destructive' });
+    }
+  };
+
+  const intakeServiceLabel = (k: string) => ({
+    interprete_libras: 'Intérprete de Libras', audiodescritor: 'Audiodescritor',
+    consultor: 'Consultor', locutor: 'Locutor', assistente: 'Assistente', outro: 'Outro',
+  } as Record<string, string>)[k] || k;
+
+  const convertIntakeToQuote = (i: any) => {
+    setEditing(null);
+    setBudgetItems([]);
+    setForm({
+      client_id: i.assigned_client_id || '',
+      event_name: i.event_name || '',
+      event_type: (i.service_types || []).map(intakeServiceLabel).join(', '),
+      venue: i.venue || '',
+      start_date: i.start_date || '',
+      end_date: i.end_date || '',
+      sessions_count: i.sessions_count || 1,
+      quoted_value: 0,
+      status: 'recebido',
+      source_channel: 'Pré-cadastro',
+      attention_to: i.requester_name || '',
+      payment_terms: '',
+      observations: [
+        i.company_name && `Empresa: ${i.company_name}`,
+        i.requester_email && `E-mail: ${i.requester_email}`,
+        i.requester_phone && `Telefone: ${i.requester_phone}`,
+        i.modality && `Modalidade: ${i.modality}`,
+        i.description && `\nDescrição: ${i.description}`,
+        i.observations && `\nObservações do cliente: ${i.observations}`,
+        i.referral_source && `\nComo nos conheceu: ${i.referral_source}`,
+      ].filter(Boolean).join('\n'),
+    });
+    setOpen(true);
+    // Marca como convertido após salvar — fica a cargo do usuário; aqui só pré-preenche.
+    // Marcação automática: ouvir o save? Mais simples: marcar agora como "convertido".
+    supabase.from('quote_intakes' as any).update({ status: 'convertido' }).eq('id', i.id).then(() => loadIntakes());
+  };
+
+  const discardIntake = async (id: string) => {
+    await supabase.from('quote_intakes' as any).update({ status: 'descartado' }).eq('id', id);
+    loadIntakes();
+  };
+
+  const intakeUrl = (token: string) => `${window.location.origin}/orcamento/preencher/${token}`;
+
+  const intakesPendentes = intakes.filter(i => i.status === 'recebido');
+
   const handleSave = async () => {
     if (!form.event_name) {
       toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
