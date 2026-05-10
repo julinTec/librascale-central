@@ -164,7 +164,7 @@ export default function Interpreters() {
                 <SelectContent>{Object.entries(PROFESSIONAL_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>CPF</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
+            <div className="space-y-2"><Label>CPF / CNPJ</Label><Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} /></div>
             <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
             <div className="space-y-2"><Label>Telefone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
             <div className="space-y-2"><Label>Tipo de Vínculo</Label><Input value={form.employment_type} onChange={(e) => setForm({ ...form, employment_type: e.target.value })} /></div>
