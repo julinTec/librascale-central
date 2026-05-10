@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
+import PublicQuoteIntake from "./pages/PublicQuoteIntake";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Interpreters from "./pages/Interpreters";
