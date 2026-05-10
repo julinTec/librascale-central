@@ -156,7 +156,7 @@ export default function Events() {
       client_id: e.client_id || '', event_name: e.event_name, description: e.description || '',
       venue: e.venue || '', contract_value: e.contract_value || 0, status: e.status,
       start_date: e.start_date || '', end_date: e.end_date || '', notes: e.notes || '',
-      event_type: e.event_type || 'evento_pontual',
+      service_types: (e.service_types && e.service_types.length > 0) ? e.service_types : [e.event_type || 'evento_pontual'],
       modality: e.modality || 'presencial',
       billing_type: e.billing_type || 'unico',
     });
