@@ -262,7 +262,13 @@ export default function Events() {
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.event_name}</TableCell>
                   <TableCell>{(e.clients as any)?.name || '—'}</TableCell>
-                  <TableCell><Badge variant="outline">{EVENT_TYPE_LABELS[e.event_type] || e.event_type}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {((e.service_types && e.service_types.length > 0) ? e.service_types : [e.event_type]).filter(Boolean).map((t: string) => (
+                        <Badge key={t} variant="outline">{EVENT_TYPE_LABELS[t] || t}</Badge>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm">{EVENT_MODALITY_LABELS[e.modality] || e.modality}</TableCell>
                   <TableCell>R$ {Number(e.contract_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
