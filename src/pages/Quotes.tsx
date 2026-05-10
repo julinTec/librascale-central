@@ -31,8 +31,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, ArrowRightCircle, Search, Trash2, FileDown } from 'lucide-react';
+import { Plus, Pencil, ArrowRightCircle, Search, Trash2, FileDown, Link2, Copy, Eye, X } from 'lucide-react';
 import { QUOTE_STATUS_LABELS, QUOTE_STATUS_COLORS, SERVICE_TYPE_LABELS } from '@/lib/constants';
 import { format } from 'date-fns';
 
