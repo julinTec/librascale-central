@@ -122,12 +122,17 @@ export default function Events() {
     if (!form.event_name) {
       toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
     }
+    if (!form.service_types || form.service_types.length === 0) {
+      toast({ title: 'Selecione ao menos um Tipo de Serviço', variant: 'destructive' }); return;
+    }
+    const { service_types, ...rest } = form;
     const payload = {
-      ...form,
+      ...rest,
       client_id: form.client_id || null,
       contract_value: Number(form.contract_value),
       status: form.status as EventStatus,
-      event_type: form.event_type as any,
+      service_types,
+      event_type: service_types[0] as any,
       modality: form.modality as any,
       billing_type: form.billing_type as any,
     };
