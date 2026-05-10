@@ -102,7 +102,7 @@ export default function Interpreters() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>CPF</TableHead>
+                <TableHead>CPF / CNPJ</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Valor/Hora</TableHead>
                 <TableHead>Status</TableHead>
