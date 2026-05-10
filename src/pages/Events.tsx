@@ -25,7 +25,7 @@ const emptyForm = {
   client_id: '', event_name: '', description: '', venue: '',
   contract_value: 0, status: 'planejado' as string,
   start_date: '', end_date: '', notes: '',
-  event_type: 'evento_pontual' as string,
+  service_types: ['evento_pontual'] as string[],
   modality: 'presencial' as string,
   billing_type: 'unico' as string,
 };
