@@ -625,6 +625,7 @@ export type Database = {
           modality: Database["public"]["Enums"]["event_modality"]
           notes: string | null
           quote_id: string | null
+          service_types: string[]
           start_date: string | null
           status: Database["public"]["Enums"]["event_status"]
           updated_at: string
@@ -644,6 +645,7 @@ export type Database = {
           modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           quote_id?: string | null
+          service_types?: string[]
           start_date?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
@@ -663,6 +665,7 @@ export type Database = {
           modality?: Database["public"]["Enums"]["event_modality"]
           notes?: string | null
           quote_id?: string | null
+          service_types?: string[]
           start_date?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string

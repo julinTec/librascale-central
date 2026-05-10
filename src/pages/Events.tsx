@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,7 +25,7 @@ const emptyForm = {
   client_id: '', event_name: '', description: '', venue: '',
   contract_value: 0, status: 'planejado' as string,
   start_date: '', end_date: '', notes: '',
-  event_type: 'evento_pontual' as string,
+  service_types: ['evento_pontual'] as string[],
   modality: 'presencial' as string,
   billing_type: 'unico' as string,
 };
@@ -120,12 +122,17 @@ export default function Events() {
     if (!form.event_name) {
       toast({ title: 'Preencha o nome do evento', variant: 'destructive' }); return;
     }
+    if (!form.service_types || form.service_types.length === 0) {
+      toast({ title: 'Selecione ao menos um Tipo de Serviço', variant: 'destructive' }); return;
+    }
+    const { service_types, ...rest } = form;
     const payload = {
-      ...form,
+      ...rest,
       client_id: form.client_id || null,
       contract_value: Number(form.contract_value),
       status: form.status as EventStatus,
-      event_type: form.event_type as any,
+      service_types,
+      event_type: service_types[0] as any,
       modality: form.modality as any,
       billing_type: form.billing_type as any,
     };
@@ -149,7 +156,7 @@ export default function Events() {
       client_id: e.client_id || '', event_name: e.event_name, description: e.description || '',
       venue: e.venue || '', contract_value: e.contract_value || 0, status: e.status,
       start_date: e.start_date || '', end_date: e.end_date || '', notes: e.notes || '',
-      event_type: e.event_type || 'evento_pontual',
+      service_types: (e.service_types && e.service_types.length > 0) ? e.service_types : [e.event_type || 'evento_pontual'],
       modality: e.modality || 'presencial',
       billing_type: e.billing_type || 'unico',
     });
@@ -255,7 +262,13 @@ export default function Events() {
                 <TableRow key={e.id}>
                   <TableCell className="font-medium">{e.event_name}</TableCell>
                   <TableCell>{(e.clients as any)?.name || '—'}</TableCell>
-                  <TableCell><Badge variant="outline">{EVENT_TYPE_LABELS[e.event_type] || e.event_type}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {((e.service_types && e.service_types.length > 0) ? e.service_types : [e.event_type]).filter(Boolean).map((t: string) => (
+                        <Badge key={t} variant="outline">{EVENT_TYPE_LABELS[t] || t}</Badge>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm">{EVENT_MODALITY_LABELS[e.modality] || e.modality}</TableCell>
                   <TableCell>R$ {Number(e.contract_value || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -319,11 +332,39 @@ export default function Events() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Tipo do Evento</Label>
-                <Select value={form.event_type} onValueChange={v => setForm({ ...form, event_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(EVENT_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Tipo de Serviço</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" type="button" className="w-full justify-start font-normal h-10 truncate">
+                      {form.service_types.length === 0
+                        ? <span className="text-muted-foreground">Selecione...</span>
+                        : <span className="truncate">{form.service_types.map(t => EVENT_TYPE_LABELS[t] || t).join(', ')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="space-y-1 max-h-72 overflow-y-auto">
+                      {Object.entries(EVENT_TYPE_LABELS).map(([k, v]) => {
+                        const checked = form.service_types.includes(k);
+                        return (
+                          <label key={k} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(c) => {
+                                setForm({
+                                  ...form,
+                                  service_types: c
+                                    ? [...form.service_types, k]
+                                    : form.service_types.filter(s => s !== k),
+                                });
+                              }}
+                            />
+                            <span className="text-sm">{v}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>Modalidade</Label>
