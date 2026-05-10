@@ -326,11 +326,39 @@ export default function Events() {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Tipo do Evento</Label>
-                <Select value={form.event_type} onValueChange={v => setForm({ ...form, event_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(EVENT_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                </Select>
+                <Label>Tipo de Serviço</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" type="button" className="w-full justify-start font-normal h-10 truncate">
+                      {form.service_types.length === 0
+                        ? <span className="text-muted-foreground">Selecione...</span>
+                        : <span className="truncate">{form.service_types.map(t => EVENT_TYPE_LABELS[t] || t).join(', ')}</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="start">
+                    <div className="space-y-1 max-h-72 overflow-y-auto">
+                      {Object.entries(EVENT_TYPE_LABELS).map(([k, v]) => {
+                        const checked = form.service_types.includes(k);
+                        return (
+                          <label key={k} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(c) => {
+                                setForm({
+                                  ...form,
+                                  service_types: c
+                                    ? [...form.service_types, k]
+                                    : form.service_types.filter(s => s !== k),
+                                });
+                              }}
+                            />
+                            <span className="text-sm">{v}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label>Modalidade</Label>
