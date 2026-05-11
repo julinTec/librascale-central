@@ -1,132 +1,53 @@
-## Objetivo
+## Diagnóstico
 
-Permitir que **admin** ou **operacional** gerem um **link público de pré-cadastro de orçamento** dentro da página Orçamentos. O cliente abre o link sem login, preenche os dados do evento e envia. O sistema recebe esses dados como rascunho ("pré-cadastro recebido"), exibe um badge/contador na sidebar e permite que a equipe converta o rascunho em um orçamento real com 1 clique.
+O erro `new row violates row-level security policy for table "event_assignments"` aconteceu porque a usuária que tentou cadastrar o evento (**karina.nossomundodiversidade@gmail.com**) **não tem nenhuma role atribuída** em `user_roles`.
 
-## Campos do formulário público (preenchidos pelo cliente)
+As políticas RLS de `event_assignments` (e da maioria das tabelas) só permitem INSERT para `admin` ou `operacional`. Sem role, qualquer escrita é bloqueada — mesmo a usuária estando autenticada.
 
-**Bloco 1 — Solicitante**
-- Nome completo *
-- E-mail *
-- Telefone / WhatsApp *
-- Empresa / Instituição (opcional)
+### Causa raiz
 
-**Bloco 2 — Evento**
-- Nome do evento *
-- Tipo de serviço (multi-select, mesmas opções da página Eventos: Intérprete de Libras, Audiodescritor, Consultor, Locutor, Assistente, Outro) *
-- Modalidade (Presencial / Remoto / Híbrido) *
-- Local / Endereço (obrigatório se Presencial ou Híbrido)
-- Data início *
-- Data fim (opcional, default = data início)
-- Quantidade estimada de sessões/encontros (numérico, default 1)
-- Descrição / objetivo do evento (textarea)
+A função `handle_new_user()` existe no banco e foi desenhada para criar automaticamente o profile e atribuir a role `operacional` a cada novo usuário. Porém **o trigger `on_auth_user_created` em `auth.users` não está instalado** (confirmado: não aparece em `pg_trigger`). Por isso a Karina foi criada sem role, e qualquer novo usuário criado depois também ficará sem role.
 
-**Bloco 3 — Outros**
-- Observações adicionais (textarea, opcional)
-- Como nos conheceu? (texto livre, opcional)
+## Correção proposta
 
-Todos os obrigatórios validados client + server com Zod.
+Migração única que resolve tudo:
 
-## Banco de dados
+1. **Criar o trigger ausente** em `auth.users` para executar `handle_new_user()` AFTER INSERT — garante que todo novo usuário ganhe profile + role `operacional` automaticamente.
 
-Nova tabela `quote_intakes`:
+2. **Backfill de profiles**: inserir em `public.profiles` qualquer `auth.users` que ainda não tenha profile (cobre Karina e qualquer outro caso histórico).
 
-- `id` uuid pk
-- `token` uuid único, indexado (vai na URL pública)
-- `status` enum: `aguardando` | `recebido` | `convertido` | `descartado`
-- `created_by` uuid (admin ou operacional que gerou)
-- `assigned_client_id` uuid nullable (cliente pré-vinculado)
-- `expires_at` timestamptz (default now()+30 dias, configurável 7/15/30 ao gerar)
-- `submitted_at` timestamptz nullable
-- `converted_quote_id` uuid nullable (referência ao `event_quotes.id` após conversão)
-- Campos preenchidos pelo cliente: `requester_name`, `requester_email`, `requester_phone`, `company_name`, `event_name`, `service_types text[]`, `modality`, `venue`, `start_date`, `end_date`, `sessions_count`, `description`, `observations`, `referral_source`
-- `created_at`, `updated_at`
+3. **Backfill de roles**: atribuir role `operacional` a qualquer `auth.users` que ainda não tenha entrada em `user_roles` (resolve o problema imediato da Karina).
 
-**RLS:**
-- `admin` e `operacional`: SELECT, INSERT, UPDATE, DELETE.
-- `interprete` / anon: SEM acesso direto à tabela. Acesso público é só via Edge Functions (service role).
+### SQL resumido
 
-## Edge Functions (públicas, `verify_jwt = false`)
+```sql
+-- 1. Trigger
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
-### `quote-intake-get` (GET)
-- Recebe `?token=...`
-- Retorna apenas campos seguros: nome da empresa (Nosso Mundo), status, expirado/válido. **Não vaza** dados internos nem confirma a existência de tokens inválidos de forma específica (resposta genérica "link inválido ou expirado").
-- Se `status = recebido` ou `convertido` ou expirado → retorna estado correspondente para a tela exibir mensagem.
+-- 2. Backfill profiles
+INSERT INTO public.profiles (id, full_name, email)
+SELECT u.id, COALESCE(u.raw_user_meta_data->>'full_name',''), u.email
+FROM auth.users u
+LEFT JOIN public.profiles p ON p.id = u.id
+WHERE p.id IS NULL;
 
-### `quote-intake-submit` (POST)
-- Recebe `{ token, payload }`
-- Validação Zod completa do payload.
-- Confere token, expiração, status `aguardando`.
-- Honeypot anti-bot (campo invisível `website` deve vir vazio).
-- Rate limit simples em memória (ex.: 5 tentativas/min por token).
-- Grava dados, marca `status = recebido`, `submitted_at = now()`.
-- Retorna sucesso genérico.
-
-## Rota pública no app
-
-Nova rota fora do `AppLayout`/`ProtectedRoute`:
-
-```
-/orcamento/preencher/:token
+-- 3. Backfill roles (default operacional)
+INSERT INTO public.user_roles (user_id, role)
+SELECT u.id, 'operacional'::app_role
+FROM auth.users u
+LEFT JOIN public.user_roles r ON r.user_id = u.id
+WHERE r.user_id IS NULL;
 ```
 
-Página `PublicQuoteIntake.tsx`:
-- Logo Nosso Mundo no topo, identidade visual da marca, sem sidebar/menu.
-- Estados: `loading` → `formulário` → `enviado-com-sucesso` → `expirado/inválido` → `já-preenchido`.
-- Formulário com os campos listados acima, validação Zod, máscaras leves para telefone.
-- Tela de sucesso: "Recebemos suas informações. Em breve entraremos em contato com seu orçamento."
-- Rodapé com aviso de LGPD.
+## Resultado esperado
 
-## UI dentro de `Quotes.tsx`
+- Karina passa a ter role `operacional` e consegue salvar alocações em eventos imediatamente.
+- Novos cadastros de usuário (via signup) recebem role automaticamente — não voltará a acontecer.
+- Nenhuma alteração de UI necessária.
 
-### Botão "Gerar link de pré-cadastro" (topo)
+## Fora de escopo
 
-- Visível para `admin` e `operacional`.
-- Abre modal:
-  - Cliente pré-vinculado (opcional, dropdown)
-  - Validade do link: 7 / 15 / **30 dias (default)**
-  - Botão "Gerar link"
-- Após gerar:
-  - Mostra a URL completa em campo readonly
-  - **Único botão de ação: "Copiar link"** (sem WhatsApp/e-mail)
-  - Mensagem: "Link válido até DD/MM/AAAA"
-
-### Aba/seção "Pré-cadastros"
-
-- Tabs no topo da página: **Orçamentos** | **Pré-cadastros** (badge com contador de `recebido` não convertidos).
-- Tabela de pré-cadastros: data envio, solicitante, evento, status, ações.
-- Filtros por status.
-- Ações por linha:
-  - **Visualizar** — modal com tudo que o cliente preencheu (read-only)
-  - **Converter em orçamento** — abre o modal "Novo Orçamento" pré-preenchido com os dados do intake. Equipe ajusta valores/itens e salva. Após salvar, marca intake como `convertido` e amarra `converted_quote_id`.
-  - **Descartar** — marca como `descartado`
-  - **Copiar link** — útil para reenviar ao cliente que ainda não preencheu
-
-## Badge na sidebar
-
-- `AppSidebar.tsx`: ao carregar (e a cada navegação), conta `quote_intakes` com `status = 'recebido' AND converted_quote_id IS NULL`.
-- Mostra badge numérico ao lado do item "Orçamentos" no menu.
-- Atualiza em realtime via `supabase.channel` na tabela `quote_intakes`.
-
-## Segurança
-
-- Token UUID v4 (não enumerável).
-- Edge Functions com input validado (Zod), honeypot, rate limit.
-- Mensagens de erro genéricas para não vazar existência de tokens.
-- RLS bloqueia acesso direto de qualquer role pública à tabela.
-- Service role key usada apenas dentro das Edge Functions.
-
-## Ordem de implementação
-
-1. Migração: criar tabela `quote_intakes` + enum de status + índices + RLS.
-2. Edge Functions `quote-intake-get` e `quote-intake-submit`.
-3. Rota pública e página `PublicQuoteIntake.tsx`.
-4. Modal "Gerar link" + integração em `Quotes.tsx`.
-5. Aba "Pré-cadastros" + ação "Converter em orçamento".
-6. Badge na sidebar com realtime.
-
-## Fora de escopo (futuro)
-
-- Envio automático por e-mail/WhatsApp.
-- Anexos (cliente subir briefing/PDF).
-- Edição pelo cliente após envio.
-- Notificação por e-mail à equipe.
+- Promoção da Karina para `admin` ou `gestor`: se desejado, é feito manualmente em Configurações → Usuários depois.
+- Revisão geral das políticas RLS das demais tabelas (estão consistentes com o modelo admin/operacional atual).
