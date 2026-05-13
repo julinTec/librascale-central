@@ -161,7 +161,13 @@ export default function Dashboard() {
       {(alerts.unallocated > 0 || alerts.pendingConfirm > 0) && (
         <div className="grid sm:grid-cols-2 gap-4">
           {alerts.unallocated > 0 && (
-            <Card className="border-warning/50 bg-warning/5">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/agenda')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/agenda'); }}
+              className="border-warning/50 bg-warning/5 cursor-pointer transition hover:bg-warning/10 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-warning/40"
+            >
               <CardContent className="p-4 flex items-center gap-3">
                 <Users className="w-5 h-5 text-warning" />
                 <div>
@@ -172,7 +178,13 @@ export default function Dashboard() {
             </Card>
           )}
           {alerts.pendingConfirm > 0 && (
-            <Card className="border-info/50 bg-info/5">
+            <Card
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/agenda')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/agenda'); }}
+              className="border-info/50 bg-info/5 cursor-pointer transition hover:bg-info/10 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-info/40"
+            >
               <CardContent className="p-4 flex items-center gap-3">
                 <Clock className="w-5 h-5 text-info" />
                 <div>
