@@ -1,53 +1,82 @@
-## Diagnóstico
+# Central de Notificações (Sino) — Plano de Implementação
 
-O erro `new row violates row-level security policy for table "event_assignments"` aconteceu porque a usuária que tentou cadastrar o evento (**karina.nossomundodiversidade@gmail.com**) **não tem nenhuma role atribuída** em `user_roles`.
+## Escopo final dos alertas
 
-As políticas RLS de `event_assignments` (e da maioria das tabelas) só permitem INSERT para `admin` ou `operacional`. Sem role, qualquer escrita é bloqueada — mesmo a usuária estando autenticada.
+### 🗓️ Eventos
+- Iniciando **hoje** (`start_date = hoje`, status ≠ cancelado/realizado)
+- Iniciando nos **próximos 7 dias**
+- **Sem nenhuma agenda criada** (events sem `event_sessions` vinculados)
 
-### Causa raiz
+### 📅 Agenda
+- Sessões nos **próximos 3 dias sem profissional alocado**
+- Sessões **hoje** ainda com status `agendada` (pendente confirmação)
+- Sessões **passadas** sem registro de execução (`session_date < hoje` e status `agendada`/`confirmada`)
+- **Conflitos** de profissional (mesmo `interpreter_id` em sessões sobrepostas)
 
-A função `handle_new_user()` existe no banco e foi desenhada para criar automaticamente o profile e atribuir a role `operacional` a cada novo usuário. Porém **o trigger `on_auth_user_created` em `auth.users` não está instalado** (confirmado: não aparece em `pg_trigger`). Por isso a Karina foi criada sem role, e qualquer novo usuário criado depois também ficará sem role.
+### 📨 Pré-cadastros
+- `quote_intakes` com status `recebido` (devolvidos pelo cliente)
+- `quote_intakes` `aguardando` com `expires_at` em ≤ 2 dias (link prestes a expirar)
 
-## Correção proposta
+### 💰 Financeiro
+- Recebíveis **vencidos** (`due_date < hoje`, status `pendente`/`vencido`)
+- Pagamentos **vencidos** (`event_payables` com `due_date < hoje`, status `pendente`/`vencido`)
 
-Migração única que resolve tudo:
+---
 
-1. **Criar o trigger ausente** em `auth.users` para executar `handle_new_user()` AFTER INSERT — garante que todo novo usuário ganhe profile + role `operacional` automaticamente.
+## UX
 
-2. **Backfill de profiles**: inserir em `public.profiles` qualquer `auth.users` que ainda não tenha profile (cobre Karina e qualquer outro caso histórico).
+Sino no header (`AppLayout.tsx`), à direita do `SidebarTrigger`, com badge vermelho do total não-visualizado. Clique abre **Popover** com 4 grupos colapsados. Cada item é clicável e navega para a página/filtro correspondente:
 
-3. **Backfill de roles**: atribuir role `operacional` a qualquer `auth.users` que ainda não tenha entrada em `user_roles` (resolve o problema imediato da Karina).
+- Evento → `/eventos`
+- Agenda → `/agenda`
+- Pré-cadastro → `/orcamentos` (aba Pré-cadastros)
+- Financeiro → `/financeiro`
 
-### SQL resumido
+Botão **"Marcar todas como vistas"** no rodapé. Estado de "visto" em `localStorage` por usuário (sem nova tabela). Alertas reaparecem se a condição persistir após nova ocorrência.
 
-```sql
--- 1. Trigger
-CREATE TRIGGER on_auth_user_created
-AFTER INSERT ON auth.users
-FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- 2. Backfill profiles
-INSERT INTO public.profiles (id, full_name, email)
-SELECT u.id, COALESCE(u.raw_user_meta_data->>'full_name',''), u.email
-FROM auth.users u
-LEFT JOIN public.profiles p ON p.id = u.id
-WHERE p.id IS NULL;
-
--- 3. Backfill roles (default operacional)
-INSERT INTO public.user_roles (user_id, role)
-SELECT u.id, 'operacional'::app_role
-FROM auth.users u
-LEFT JOIN public.user_roles r ON r.user_id = u.id
-WHERE r.user_id IS NULL;
+```text
+🔔(9)
+ ▼
+┌──────────────────────────┐
+│ Notificações       (9)   │
+├──────────────────────────┤
+│ 🗓️  Eventos (3)          │
+│ 📅 Agenda (4)            │
+│ 📨 Pré-cadastros (1)     │
+│ 💰 Financeiro (1)        │
+├──────────────────────────┤
+│  Marcar todas como vistas│
+└──────────────────────────┘
 ```
 
-## Resultado esperado
+Atualização **realtime** via Supabase channels nas tabelas `events`, `event_sessions`, `event_assignments`, `quote_intakes`, `event_receivables`, `event_payables` + recarga ao montar.
 
-- Karina passa a ter role `operacional` e consegue salvar alocações em eventos imediatamente.
-- Novos cadastros de usuário (via signup) recebem role automaticamente — não voltará a acontecer.
-- Nenhuma alteração de UI necessária.
+---
 
-## Fora de escopo
+## Decisões assumidas (avise se quiser mudar)
+- **Sidebar badge de pré-cadastros**: mantido em paralelo ao sino (não remove)
+- **Permissões**: visível para `admin` e `operacional` (mesmas regras das tabelas envolvidas)
+- **Janelas**: 7 dias (eventos), 3 dias (agenda sem profissional), 2 dias (intakes a expirar)
 
-- Promoção da Karina para `admin` ou `gestor`: se desejado, é feito manualmente em Configurações → Usuários depois.
-- Revisão geral das políticas RLS das demais tabelas (estão consistentes com o modelo admin/operacional atual).
+---
+
+## Arquivos
+
+**Novos:**
+- `src/hooks/useNotifications.ts` — busca consolidada via `Promise.all`, calcula conflitos em memória, retorna `{ groups, total, markAllSeen }`, com subscriptions realtime
+- `src/components/NotificationBell.tsx` — ícone `Bell` (lucide), Badge, Popover com lista agrupada e itens clicáveis (`useNavigate`)
+
+**Editados:**
+- `src/components/AppLayout.tsx` — inserir `<NotificationBell />` no header, à direita
+
+**Sem migrações** — todos os alertas são derivados de queries em tabelas existentes.
+
+---
+
+## Detalhes técnicos
+
+- Queries paralelas filtradas por data (`gte`/`lte`) para evitar trazer dados desnecessários
+- Conflitos: agrupar `event_assignments` por (`interpreter_id`, `session_date`) e detectar sobreposição de horários client-side
+- "Sem agenda criada": `LEFT JOIN`-style via duas queries (`events` próximos + `event_sessions.event_id` distintos) e diff em memória
+- `localStorage` key: `notif_seen_${user_id}` armazenando array de IDs de alerta vistos (formato `${categoria}:${entidade_id}:${tipo}`)
+- Auto-refetch a cada 60s + invalidação imediata via realtime
