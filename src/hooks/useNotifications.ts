@@ -62,7 +62,7 @@ export function useNotifications() {
         .gte('start_date', today).lte('start_date', in7)
         .not('status', 'in', '(cancelado,realizado)'),
       supabase.from('event_sessions')
-        .select('id, title, session_date, start_time, end_time, status, event_id, interpreter_id:event_id, events(event_name)')
+        .select('id, title, session_date, start_time, end_time, status, event_id, events(event_name)')
         .gte('session_date', today).lte('session_date', in3)
         .neq('status', 'cancelada'),
       supabase.from('event_sessions')
