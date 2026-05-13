@@ -22,6 +22,7 @@ const MONTHS = [
 type FilterMode = 'month' | 'year';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const now = new Date();
   const [filterMode, setFilterMode] = useState<FilterMode>('month');
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
