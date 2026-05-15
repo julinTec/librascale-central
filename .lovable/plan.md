@@ -1,82 +1,89 @@
-# Central de Notificações (Sino) — Plano de Implementação
+## Central de Ajuda — FAQ do Sistema
 
-## Escopo final dos alertas
+Nova página `/ajuda` acessível pelo menu lateral e por um atalho no header, cobrindo todas as funcionalidades do sistema em formato de FAQ navegável e pesquisável.
 
-### 🗓️ Eventos
-- Iniciando **hoje** (`start_date = hoje`, status ≠ cancelado/realizado)
-- Iniciando nos **próximos 7 dias**
-- **Sem nenhuma agenda criada** (events sem `event_sessions` vinculados)
+### Estrutura da página
 
-### 📅 Agenda
-- Sessões nos **próximos 3 dias sem profissional alocado**
-- Sessões **hoje** ainda com status `agendada` (pendente confirmação)
-- Sessões **passadas** sem registro de execução (`session_date < hoje` e status `agendada`/`confirmada`)
-- **Conflitos** de profissional (mesmo `interpreter_id` em sessões sobrepostas)
+**Cabeçalho**
+- Título "Central de Ajuda" + subtítulo
+- Campo de busca em tempo real (filtra perguntas e respostas, ignora acentos/maiúsculas)
+- Grid de cards "Acesso rápido" linkando às seções principais
 
-### 📨 Pré-cadastros
-- `quote_intakes` com status `recebido` (devolvidos pelo cliente)
-- `quote_intakes` `aguardando` com `expires_at` em ≤ 2 dias (link prestes a expirar)
+**Seções (Accordion por categoria)**
 
-### 💰 Financeiro
-- Recebíveis **vencidos** (`due_date < hoje`, status `pendente`/`vencido`)
-- Pagamentos **vencidos** (`event_payables` com `due_date < hoje`, status `pendente`/`vencido`)
+1. **Primeiros Passos**
+   - O que é o Nosso Mundo - Gestão de Eventos
+   - Fluxo geral: Orçamento → Evento → Agenda → Alocação → Financeiro
+   - Perfis de acesso (Admin, Operacional, Gestor, Intérprete) e permissões de cada um
+   - Como ler o Dashboard inicial e o sino de notificações
 
----
+2. **Clientes e Profissionais**
+   - Cadastrar/editar cliente
+   - Cadastrar profissional (intérprete, audiodescritor, locutor, consultor, assistente)
+   - Tipos de profissional e quando usar cada um
 
-## UX
+3. **Orçamentos**
+   - Diferença entre Pré-cadastro (link público) e Orçamento interno
+   - Como enviar link de pré-cadastro ao cliente
+   - Status do orçamento (Recebido, Em Orçamento, Enviado, Aprovado, Recusado, Cancelado)
+   - Como converter orçamento aprovado em Evento
 
-Sino no header (`AppLayout.tsx`), à direita do `SidebarTrigger`, com badge vermelho do total não-visualizado. Clique abre **Popover** com 4 grupos colapsados. Cada item é clicável e navega para a página/filtro correspondente:
+4. **Eventos e Agenda**
+   - Tipos de evento (Pontual, Temporada, Palestra, Gravação, Vídeo Remoto, Serviço Administrativo)
+   - Modalidades (Presencial, Remoto, Híbrido) e Tipos de Faturamento
+   - Criar sessões de agenda dentro do evento
+   - Alocar profissionais e o que significa "conflito de agenda"
+   - Status da sessão (Agendada, Confirmada, Realizada, Cancelada, Reagendada)
+   - Ocorrências manuais: quando e como registrar
 
-- Evento → `/eventos`
-- Agenda → `/agenda`
-- Pré-cadastro → `/orcamentos` (aba Pré-cadastros)
-- Financeiro → `/financeiro`
+5. **Financeiro**
+   - Contas a Receber x Contas a Pagar
+   - Cálculo de imposto (6%) e margem de lucro
+   - Marcar pagamento/recebimento e baixas parciais
+   - Status (Pendente, Parcial, Pago/Recebido, Vencido)
 
-Botão **"Marcar todas como vistas"** no rodapé. Estado de "visto" em `localStorage` por usuário (sem nova tabela). Alertas reaparecem se a condição persistir após nova ocorrência.
+6. **Relatórios e Dashboard Gerencial**
+   - Como gerar PDF de relatórios
+   - Filtros de data unificados
+   - O que aparece no Dashboard Gerencial (Power BI)
 
-```text
-🔔(9)
- ▼
-┌──────────────────────────┐
-│ Notificações       (9)   │
-├──────────────────────────┤
-│ 🗓️  Eventos (3)          │
-│ 📅 Agenda (4)            │
-│ 📨 Pré-cadastros (1)     │
-│ 💰 Financeiro (1)        │
-├──────────────────────────┤
-│  Marcar todas como vistas│
-└──────────────────────────┘
-```
+7. **Notificações (Sino)**
+   - O que cada categoria significa (Eventos, Agenda, Pré-cadastros, Financeiro)
+   - Janelas de tempo (7d eventos, 3d agenda, 2d pré-cadastros)
+   - "Marcar todas como vistas"
 
-Atualização **realtime** via Supabase channels nas tabelas `events`, `event_sessions`, `event_assignments`, `quote_intakes`, `event_receivables`, `event_payables` + recarga ao montar.
+8. **Configurações e Usuários**
+   - Criar/editar usuários e definir papéis
+   - Redefinir senha
 
----
+9. **Solução de Problemas**
+   - "Não consigo salvar um evento" → checar campos obrigatórios
+   - "Não vejo o botão Excluir" → restrições por papel (operacional só exclui Orçamentos e Ocorrências)
+   - "Cliente não recebeu o link do pré-cadastro" → reenviar link
+   - "Conflito de agenda detectado" → como resolver
+   - "Página em branco / erro" → recarregar e limpar cache
 
-## Decisões assumidas (avise se quiser mudar)
-- **Sidebar badge de pré-cadastros**: mantido em paralelo ao sino (não remove)
-- **Permissões**: visível para `admin` e `operacional` (mesmas regras das tabelas envolvidas)
-- **Janelas**: 7 dias (eventos), 3 dias (agenda sem profissional), 2 dias (intakes a expirar)
+### Implementação técnica
 
----
+- Página: `src/pages/Help.tsx`
+- Conteúdo: `src/lib/faq-content.ts` — array tipado `faqSections: { id, title, icon, items: { q, a }[] }`, fácil de manter sem tocar na UI
+- UI: shadcn `Accordion`, `Card`, `Input` + ícones lucide (`HelpCircle`, `BookOpen`, `Users`, `FileText`, `Calendar`, `DollarSign`, `Bell`, `Settings`, `LifeBuoy`)
+- Busca: filtro client-side com normalização (sem acento, lowercase) sobre pergunta + resposta; seções sem match são ocultadas
+- Rota: adicionar `<Route path="/ajuda" element={<Help />} />` em `src/App.tsx` (visível a todos os usuários autenticados, sem restrição de papel)
+- Menu lateral: novo item "Ajuda" (ícone `HelpCircle`) em `AppSidebar.tsx`, posicionado acima de "Configurações"
+- Atalho no header: ícone `HelpCircle` em `AppLayout.tsx` ao lado do sino, linkando para `/ajuda`
+- Tokens semânticos do design system (sem cores hardcoded)
+- SEO: `<title>Central de Ajuda — Nosso Mundo</title>`, H1 único, conteúdo semântico
 
-## Arquivos
+### Arquivos
 
-**Novos:**
-- `src/hooks/useNotifications.ts` — busca consolidada via `Promise.all`, calcula conflitos em memória, retorna `{ groups, total, markAllSeen }`, com subscriptions realtime
-- `src/components/NotificationBell.tsx` — ícone `Bell` (lucide), Badge, Popover com lista agrupada e itens clicáveis (`useNavigate`)
+**Novos**
+- `src/pages/Help.tsx`
+- `src/lib/faq-content.ts`
 
-**Editados:**
-- `src/components/AppLayout.tsx` — inserir `<NotificationBell />` no header, à direita
+**Editados**
+- `src/App.tsx` — nova rota `/ajuda`
+- `src/components/AppSidebar.tsx` — item "Ajuda" no menu
+- `src/components/AppLayout.tsx` — botão `HelpCircle` no header
 
-**Sem migrações** — todos os alertas são derivados de queries em tabelas existentes.
-
----
-
-## Detalhes técnicos
-
-- Queries paralelas filtradas por data (`gte`/`lte`) para evitar trazer dados desnecessários
-- Conflitos: agrupar `event_assignments` por (`interpreter_id`, `session_date`) e detectar sobreposição de horários client-side
-- "Sem agenda criada": `LEFT JOIN`-style via duas queries (`events` próximos + `event_sessions.event_id` distintos) e diff em memória
-- `localStorage` key: `notif_seen_${user_id}` armazenando array de IDs de alerta vistos (formato `${categoria}:${entidade_id}:${tipo}`)
-- Auto-refetch a cada 60s + invalidação imediata via realtime
+Sem migrações, sem mudanças de backend.

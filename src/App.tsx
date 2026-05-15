@@ -17,6 +17,7 @@ import Finance from "./pages/Finance";
 import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import DashboardGerencial from "./pages/DashboardGerencial";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
               <Route path="/dashboard-gerencial" element={<DashboardGerencial />} />
+              <Route path="/ajuda" element={<Help />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
