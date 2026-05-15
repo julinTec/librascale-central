@@ -1,67 +1,49 @@
-## Objetivo
-Tornar o sistema instalável no celular (iPhone/Android) como um app, mantendo 100% do acesso ao banco de dados Lovable Cloud. O usuário poderá adicionar à tela inicial e abrir como aplicativo, sem barra do navegador.
+## Diagnóstico
 
-## Abordagem
-Vou usar a estratégia **manifest-only** (sem service worker), recomendada pela Lovable para apps que precisam apenas de instalabilidade — sem cache offline. Isso evita problemas de cache desatualizado e garante que toda alteração feita no PC apareça imediatamente no celular.
+Revisei o sistema (App.tsx, AuthContext, AppLayout, NavLink, páginas). **O sistema está funcionando corretamente** — não há reload real, autenticação não se perde, e a navegação usa React Router (SPA), não recarregamento completo.
 
-> Observação: a instalação só funciona na versão **publicada** (`nosso-mundo-manager.lovable.app`), não no preview do editor.
+O "piscar / zerar tudo / depois carregar" que você está vendo é um efeito visual causado por como cada página foi construída:
 
-## Etapas
+1. Ao clicar no menu, o React Router troca a rota instantaneamente.
+2. A nova página (Dashboard, Eventos, Financeiro, etc.) **monta do zero** com estado vazio (`useState([])`, `stats = 0`).
+3. Em seguida, ela dispara as consultas ao banco via `useEffect` → durante ~200-800ms a tela mostra área branca / cards vazios / "0".
+4. Quando os dados chegam, tudo aparece de uma vez → parece que "carregou de novo".
 
-### 1. Gerar ícones do PWA
-Criar ícones nas resoluções exigidas pelo iOS e Android, usando a identidade visual do sistema (Nosso Mundo - Gestão de Eventos):
-- `public/icon-192.png` (192x192)
-- `public/icon-512.png` (512x512)
-- `public/apple-touch-icon.png` (180x180, para iOS)
+Ou seja: **não há bug**, mas a experiência fica ruim porque nenhuma página tem skeleton/loading state e nenhum dado é cacheado entre visitas.
 
-### 2. Criar `public/manifest.json`
-Manifest com:
-- `name`: "Nosso Mundo - Gestão de Eventos"
-- `short_name`: "Nosso Mundo"
-- `start_url`: "/dashboard"
-- `display`: "standalone" (abre como app, sem barra do navegador)
-- `theme_color` e `background_color` baseados no design system atual
-- `icons` apontando para os arquivos acima
-- `lang`: "pt-BR"
+## O que vou propor (sem mexer em lógica de negócio)
 
-### 3. Atualizar `index.html`
-Adicionar dentro do `<head>`:
-- `<link rel="manifest" href="/manifest.json">`
-- `<link rel="apple-touch-icon" href="/apple-touch-icon.png">`
-- `<meta name="apple-mobile-web-app-capable" content="yes">`
-- `<meta name="apple-mobile-web-app-status-bar-style" content="default">`
-- `<meta name="apple-mobile-web-app-title" content="Nosso Mundo">`
-- `<meta name="theme-color" content="...">`
+### 1. Cache de dados entre navegações (ganho maior)
+Hoje o `QueryClient` do React Query existe mas **nenhuma página usa `useQuery`** — todas usam `useState + useEffect + supabase` direto. Isso significa que sair e voltar para a mesma página recarrega tudo do zero.
 
-### 4. Criar página `/instalar` (opcional, mas recomendada)
-Uma página simples com instruções visuais de instalação:
-- **Android/Chrome**: botão "Instalar app" (usa o evento `beforeinstallprompt`)
-- **iPhone/Safari**: instruções "Toque em Compartilhar → Adicionar à Tela de Início"
-- Detecta automaticamente o sistema e mostra a instrução certa
+Em vez de refatorar todas as páginas (trabalho enorme), vou:
+- Configurar o `QueryClient` com `staleTime` razoável e `keepPreviousData`.
+- Adicionar um wrapper leve `usePageData` ou simplesmente um cache em memória (Map) por chave de rota, para que ao voltar a uma página os últimos dados apareçam imediatamente enquanto a atualização ocorre em background.
 
-Adicionar link "Instalar app no celular" na Central de Ajuda (`/ajuda`).
+### 2. Skeleton/placeholder enquanto carrega
+Adicionar um estado `loading` visível em cada página principal (Dashboard, Eventos, Financeiro, Orçamentos, Agenda) com componentes `Skeleton` do shadcn no lugar dos cards/tabelas. Em vez de "tudo zerado → tudo cheio", você verá "tudo cinza animado → tudo cheio", o que parece muito mais profissional e elimina a sensação de "piscar".
 
-### 5. Atualizar a Central de Ajuda
-Incluir uma nova seção/FAQ sobre **Acesso pelo Celular**, explicando:
-- Como instalar no Android
-- Como instalar no iPhone
-- Que os dados são os mesmos do PC (sincronização em tempo real)
+### 3. Transição suave entre rotas
+Adicionar uma classe de transição (`fade-in`) no `<main>` do `AppLayout` para o conteúdo aparecer com fade de 150ms em vez de pop instantâneo.
 
-## O que NÃO será feito (intencionalmente)
-- ❌ Não vou instalar `vite-plugin-pwa` nem service workers — eles causam problemas no preview da Lovable e cache desatualizado.
-- ❌ Não haverá funcionamento offline (o sistema precisa do banco para tudo, então isso não faz diferença prática).
-- ❌ Push notifications nativas ficam fora deste escopo.
+### 4. Verificação rápida de saúde
+Vou rodar uma checagem ao vivo (browser tool) navegando entre 3-4 páginas para confirmar que:
+- A sessão não se perde.
+- Não há requests duplicados.
+- Não há erro no console.
+- O tempo médio de carregamento de cada página está OK.
 
-## Resultado final
-Após publicar, qualquer usuário acessando `https://nosso-mundo-manager.lovable.app` pelo celular poderá:
-1. Adicionar à tela inicial pelo navegador
-2. Abrir como app (sem barra de navegação)
-3. Usar todas as funcionalidades normalmente, com dados sincronizados em tempo real com o PC
+## Arquivos a alterar
 
-## Arquivos que serão alterados/criados
-- `public/manifest.json` (novo)
-- `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png` (novos)
-- `index.html` (meta tags + link do manifest)
-- `src/pages/Install.tsx` (nova página `/instalar`)
-- `src/App.tsx` (rota `/instalar`)
-- `src/lib/faq-content.ts` (nova seção sobre celular)
+- `src/App.tsx` — configurar `QueryClient` (staleTime, gcTime).
+- `src/components/AppLayout.tsx` — adicionar fade-in no `<main>` e `key={location.pathname}`.
+- `src/lib/page-cache.ts` (novo) — cache simples em memória por rota.
+- `src/pages/Dashboard.tsx`, `Events.tsx`, `Finance.tsx`, `Quotes.tsx`, `Sessions.tsx` — adicionar estado `loading` + Skeletons + integrar cache.
+- `src/components/ui/skeleton.tsx` já existe, será reutilizado.
+
+## O que NÃO vou mudar
+
+- Lógica de banco, RLS, edge functions, autenticação, PWA — tudo permanece igual.
+- Estrutura do menu, design system, cores.
+
+Posso seguir com a implementação?

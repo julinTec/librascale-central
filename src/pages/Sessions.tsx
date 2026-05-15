@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -23,9 +24,9 @@ const emptyAssignment = { interpreter_id: '', service_role: '', payment_mode: 'p
 
 export default function Agenda() {
   const { toast } = useToast();
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
-  const [interpreters, setInterpreters] = useState<any[]>([]);
+  const [sessions, setSessions] = useCachedState<any[]>('agenda:sessions', []);
+  const [events, setEvents] = useCachedState<any[]>('agenda:events', []);
+  const [interpreters, setInterpreters] = useCachedState<any[]>('agenda:interpreters', []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState(emptySession);

@@ -1,14 +1,16 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/NotificationBell';
 
 export function AppLayout() {
+  const location = useLocation();
+
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center border-b bg-card px-4 shrink-0">
@@ -21,8 +23,10 @@ export function AppLayout() {
             </Button>
             <NotificationBell />
           </header>
-          <main className="flex-1 overflow-auto p-6">
-            <Outlet />
+          <main className="flex-1 overflow-auto p-6 bg-background">
+            <div key={location.pathname} className="animate-page-fade-in">
+              <Outlet />
+            </div>
           </main>
         </div>
       </div>

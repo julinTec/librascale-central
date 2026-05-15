@@ -21,7 +21,16 @@ import Help from "./pages/Help";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
