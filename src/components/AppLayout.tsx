@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
-import { Outlet, Link, useLocation, useNavigation } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/NotificationBell';
