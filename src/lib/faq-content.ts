@@ -1,12 +1,39 @@
 import {
   BookOpen, Users, FileText, Calendar, DollarSign, BarChart3,
-  Bell, Settings, LifeBuoy, type LucideIcon,
+  Bell, Settings, LifeBuoy, Smartphone, type LucideIcon,
 } from 'lucide-react';
 
 export type FaqItem = { q: string; a: string };
 export type FaqSection = { id: string; title: string; icon: LucideIcon; items: FaqItem[] };
 
 export const faqSections: FaqSection[] = [
+  {
+    id: 'acesso-celular',
+    title: 'Acesso pelo Celular',
+    icon: Smartphone,
+    items: [
+      {
+        q: 'Posso usar o sistema pelo celular?',
+        a: 'Sim. O sistema é totalmente responsivo e pode ser instalado como aplicativo no Android e no iPhone. Acesse a página "Instalar no celular" (/instalar) para instruções passo a passo.',
+      },
+      {
+        q: 'Como instalar no Android?',
+        a: 'Abra o site no Chrome do celular, toque no menu (⋮) no topo e selecione "Instalar app" ou "Adicionar à tela inicial". Em alguns casos aparece um botão automático na página /instalar.',
+      },
+      {
+        q: 'Como instalar no iPhone?',
+        a: 'Abra o site no Safari (não funciona em outros navegadores no iOS), toque no botão Compartilhar na barra inferior, role e escolha "Adicionar à Tela de Início" e confirme em "Adicionar".',
+      },
+      {
+        q: 'Os dados do celular são iguais aos do computador?',
+        a: 'Sim. O app instalado usa o mesmo banco de dados em tempo real. Tudo que você faz pelo PC reflete no celular instantaneamente, e vice-versa.',
+      },
+      {
+        q: 'Funciona sem internet?',
+        a: 'Não. Como o sistema depende do banco de dados na nuvem, é necessária conexão com a internet para uso. Recomendamos rede Wi-Fi ou dados móveis estáveis.',
+      },
+    ],
+  },
   {
     id: 'primeiros-passos',
     title: 'Primeiros Passos',
