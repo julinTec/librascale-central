@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,13 +30,13 @@ export default function Dashboard() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i), []);
 
-  const [stats, setStats] = useState({ events: 0, contractValue: 0, toReceive: 0, toPay: 0, margin: 0, pendingPayments: 0, realProfit: 0 });
-  const [statusData, setStatusData] = useState<any[]>([]);
-  const [clientVolume, setClientVolume] = useState<any[]>([]);
-  const [profitByEvent, setProfitByEvent] = useState<any[]>([]);
-  const [costsByType, setCostsByType] = useState<any[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<{ unallocated: number; pendingConfirm: number }>({ unallocated: 0, pendingConfirm: 0 });
+  const [stats, setStats] = useCachedState('dashboard:stats', { events: 0, contractValue: 0, toReceive: 0, toPay: 0, margin: 0, pendingPayments: 0, realProfit: 0 });
+  const [statusData, setStatusData] = useCachedState<any[]>('dashboard:statusData', []);
+  const [clientVolume, setClientVolume] = useCachedState<any[]>('dashboard:clientVolume', []);
+  const [profitByEvent, setProfitByEvent] = useCachedState<any[]>('dashboard:profitByEvent', []);
+  const [costsByType, setCostsByType] = useCachedState<any[]>('dashboard:costsByType', []);
+  const [upcomingSessions, setUpcomingSessions] = useCachedState<any[]>('dashboard:upcomingSessions', []);
+  const [alerts, setAlerts] = useCachedState<{ unallocated: number; pendingConfirm: number }>('dashboard:alerts', { unallocated: 0, pendingConfirm: 0 });
 
   const { periodStart, periodEnd } = useMemo(() => {
     if (filterMode === 'year') return { periodStart: `${selectedYear}-01-01`, periodEnd: `${selectedYear}-12-31` };
