@@ -18,6 +18,7 @@ import Reports from "./pages/Reports";
 import SettingsPage from "./pages/SettingsPage";
 import DashboardGerencial from "./pages/DashboardGerencial";
 import Help from "./pages/Help";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ const App = () => (
               <Route path="/configuracoes" element={<SettingsPage />} />
               <Route path="/dashboard-gerencial" element={<DashboardGerencial />} />
               <Route path="/ajuda" element={<Help />} />
+              <Route path="/instalar" element={<Install />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
