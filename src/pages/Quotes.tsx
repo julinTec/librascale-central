@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
@@ -49,8 +50,8 @@ const emptyItem = { service_type: 'interprete_libras' as string, description: ''
 export default function Quotes() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [quotes, setQuotes] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [quotes, setQuotes] = useCachedState<any[]>('quotes:list', []);
+  const [clients, setClients] = useCachedState<any[]>('quotes:clients', []);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState(emptyForm);

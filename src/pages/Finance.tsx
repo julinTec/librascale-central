@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -25,11 +26,11 @@ const emptyPayable = { event_id: '', interpreter_id: '', amount: 0, due_date: ''
 
 export default function Finance() {
   const { toast } = useToast();
-  const [receivables, setReceivables] = useState<any[]>([]);
-  const [payables, setPayables] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
-  const [interpreters, setInterpreters] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [receivables, setReceivables] = useCachedState<any[]>('finance:receivables', []);
+  const [payables, setPayables] = useCachedState<any[]>('finance:payables', []);
+  const [events, setEvents] = useCachedState<any[]>('finance:events', []);
+  const [interpreters, setInterpreters] = useCachedState<any[]>('finance:interpreters', []);
+  const [clients, setClients] = useCachedState<any[]>('finance:clients', []);
   const [taxDefault, setTaxDefault] = useState(0);
 
   const [recOpen, setRecOpen] = useState(false);
