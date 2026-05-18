@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ const emptyForm = {
 };
 
 export default function Interpreters() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useCachedState<any[]>('interpreters:list', []);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
