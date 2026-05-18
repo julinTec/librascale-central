@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +25,7 @@ const TABLES = [
 ];
 
 export default function SettingsPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useCachedState<any[]>('settings:users', []);
   const { role, session } = useAuth();
   const { toast } = useToast();
   const [creating, setCreating] = useState(false);
@@ -38,7 +39,7 @@ export default function SettingsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
 
   // Tax settings
-  const [taxSettings, setTaxSettings] = useState<any[]>([]);
+  const [taxSettings, setTaxSettings] = useCachedState<any[]>('settings:taxSettings', []);
   const [taxOpen, setTaxOpen] = useState(false);
   const [taxForm, setTaxForm] = useState({ name: 'Simples Nacional', percentage: 6, is_default: true });
   const [editingTax, setEditingTax] = useState<any>(null);
