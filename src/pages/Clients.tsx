@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,7 @@ const emptyClient = {
 };
 
 export default function Clients() {
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clients, setClients] = useCachedState<Client[]>('clients:list', []);
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
