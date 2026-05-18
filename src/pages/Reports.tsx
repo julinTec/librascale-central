@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,11 +30,11 @@ export default function Reports() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i), []);
 
-  const [eventReport, setEventReport] = useState<any[]>([]);
-  const [interpreterReport, setInterpreterReport] = useState<any[]>([]);
-  const [monthlyProfit, setMonthlyProfit] = useState<any[]>([]);
-  const [costsByType, setCostsByType] = useState<any[]>([]);
-  const [revenueByType, setRevenueByType] = useState<any[]>([]);
+  const [eventReport, setEventReport] = useCachedState<any[]>('reports:eventReport', []);
+  const [interpreterReport, setInterpreterReport] = useCachedState<any[]>('reports:interpreterReport', []);
+  const [monthlyProfit, setMonthlyProfit] = useCachedState<any[]>('reports:monthlyProfit', []);
+  const [costsByType, setCostsByType] = useCachedState<any[]>('reports:costsByType', []);
+  const [revenueByType, setRevenueByType] = useCachedState<any[]>('reports:revenueByType', []);
 
   const { periodStart, periodEnd, periodLabel } = useMemo(() => {
     if (filterMode === 'year') {
