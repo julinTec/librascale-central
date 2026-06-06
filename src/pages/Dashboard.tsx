@@ -125,8 +125,11 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
+        <p className="text-muted-foreground">Bem-vindo de volta! Aqui está um resumo do seu negócio hoje.</p>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex rounded-md border border-input overflow-hidden">
