@@ -143,7 +143,7 @@ export default function Clients() {
                   <TableCell className="text-sm">{c.email || c.phone || '-'}</TableCell>
                   <TableCell className="text-sm">{c.monthly_hours_package || 0}h</TableCell>
                   <TableCell>
-                    <Badge variant={c.is_active ? 'default' : 'secondary'}>
+                    <Badge variant={c.is_active ? 'default' : 'secondary'} className={c.is_active ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20" : ""}>
                       {c.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
