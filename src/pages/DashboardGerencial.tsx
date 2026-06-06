@@ -232,14 +232,37 @@ export default function DashboardGerencial() {
 
           <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-1 shadow-sm">
             <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
-              <SelectTrigger className="w-[110px] border-0 focus:ring-0 h-8 p-0"><SelectValue /></SelectTrigger>
+            <Select 
+              value={selectedQuarter !== 'todos' ? `q${selectedQuarter}` : selectedMonth !== 'todos' ? `m${selectedMonth}` : 'todos'} 
+              onValueChange={v => {
+                if (v === 'todos') {
+                  setSelectedQuarter('todos');
+                  setSelectedMonth('todos');
+                } else if (v.startsWith('q')) {
+                  setSelectedQuarter(v.substring(1));
+                  setSelectedMonth('todos');
+                } else if (v.startsWith('m')) {
+                  setSelectedMonth(v.substring(1));
+                  setSelectedQuarter('todos');
+                }
+              }}
+            >
+              <SelectTrigger className="w-[130px] border-0 focus:ring-0 h-8 p-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todo o Ano</SelectItem>
-                <SelectItem value="1">1º Trimestre</SelectItem>
-                <SelectItem value="2">2º Trimestre</SelectItem>
-                <SelectItem value="3">3º Trimestre</SelectItem>
-                <SelectItem value="4">4º Trimestre</SelectItem>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase opacity-50 px-2 py-1">Trimestres</SelectLabel>
+                  <SelectItem value="q1">1º Trimestre</SelectItem>
+                  <SelectItem value="q2">2º Trimestre</SelectItem>
+                  <SelectItem value="q3">3º Trimestre</SelectItem>
+                  <SelectItem value="q4">4º Trimestre</SelectItem>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase opacity-50 px-2 py-1">Meses</SelectLabel>
+                  {months.map(m => (
+                    <SelectItem key={m.value} value={`m${m.value}`}>{m.label}</SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
