@@ -91,7 +91,10 @@ export default function DashboardGerencial() {
     let startDate = startOfYear(new Date(selectedYear, 0, 1));
     let endDate = endOfYear(new Date(selectedYear, 0, 1));
 
-    if (selectedQuarter !== 'todos') {
+    if (selectedMonth !== 'todos') {
+      startDate = new Date(selectedYear, parseInt(selectedMonth) - 1, 1);
+      endDate = endOfMonth(startDate);
+    } else if (selectedQuarter !== 'todos') {
       const q = parseInt(selectedQuarter);
       startDate = new Date(selectedYear, (q - 1) * 3, 1);
       endDate = endOfMonth(new Date(selectedYear, q * 3 - 1, 1));
