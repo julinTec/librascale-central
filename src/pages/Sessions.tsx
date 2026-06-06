@@ -328,7 +328,7 @@ export default function Agenda() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label className="text-sm font-semibold">Modalidade</Label>
-                <Select value={form.modality} onValueChange={v => setForm({ ...form, modality: v })}>
+                <Select value={form.modality} onValueChange={v => setForm({ ...form, modality: v as any })}>
                   <SelectTrigger className="bg-muted/30"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(EVENT_MODALITY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
