@@ -362,7 +362,7 @@ export default function Agenda() {
                 <div className="grid gap-2"><Label className="text-sm font-semibold">Papel / Função</Label><Input value={assignForm.service_role} onChange={e => setAssignForm({ ...assignForm, service_role: e.target.value })} placeholder="Ex: Intérprete Titular" className="bg-muted/30" /></div>
                 <div className="grid gap-2">
                   <Label className="text-sm font-semibold">Forma Pagto</Label>
-                  <Select value={assignForm.payment_mode} onValueChange={v => setAssignForm({ ...assignForm, payment_mode: v })}>
+                  <Select value={assignForm.payment_mode} onValueChange={v => setAssignForm({ ...assignForm, payment_mode: v as any })}>
                     <SelectTrigger className="bg-muted/30"><SelectValue /></SelectTrigger>
                     <SelectContent>{Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                   </Select>
