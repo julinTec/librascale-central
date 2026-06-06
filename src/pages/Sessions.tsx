@@ -335,7 +335,7 @@ export default function Agenda() {
               </div>
               <div className="grid gap-2">
                 <Label className="text-sm font-semibold">Status</Label>
-                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v as any })}>
                   <SelectTrigger className={cn("bg-muted/30 font-bold", SCHEDULE_STATUS_V2_COLORS[form.status])}><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(SCHEDULE_STATUS_V2_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
