@@ -94,18 +94,26 @@ export default function Clients() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Clientes</h1>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo Cliente</Button>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Gestão de Clientes</h1>
+          <p className="text-muted-foreground">Visualize e gerencie sua base de clientes e contratos.</p>
+        </div>
+        <Button onClick={openNew} className="shadow-md hover:shadow-lg transition-all">
+          <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+      <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-0">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Buscar cliente por nome ou fantasia..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background/50 focus:bg-background transition-all" />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline" className="bg-background/50">{filtered.length} Clientes</Badge>
             </div>
           </div>
         </CardHeader>
