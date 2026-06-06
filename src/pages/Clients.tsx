@@ -94,34 +94,43 @@ export default function Clients() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Clientes</h1>
-        <Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo Cliente</Button>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Gestão de Clientes</h1>
+          <p className="text-muted-foreground">Visualize e gerencie sua base de clientes e contratos.</p>
+        </div>
+        <Button onClick={openNew} className="shadow-md hover:shadow-lg transition-all">
+          <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
+      <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-0">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Buscar cliente por nome ou fantasia..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background/50 focus:bg-background transition-all" />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline" className="bg-background/50">{filtered.length} Clientes</Badge>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Pacote (h/mês)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="rounded-xl border border-border/50 bg-background/50 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-semibold py-4">Nome / Empresa</TableHead>
+                  <TableHead className="font-semibold py-4 text-center">Contratos</TableHead>
+                  <TableHead className="font-semibold py-4">Contato Principal</TableHead>
+                  <TableHead className="font-semibold py-4">Pacote (h/mês)</TableHead>
+                  <TableHead className="font-semibold py-4">Status</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
@@ -130,11 +139,11 @@ export default function Clients() {
                       {c.trade_name && <p className="text-xs text-muted-foreground">{c.trade_name}</p>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{c.cnpj || '-'}</TableCell>
+                  <TableCell className="text-sm text-center font-mono">{c.cnpj || '-'}</TableCell>
                   <TableCell className="text-sm">{c.email || c.phone || '-'}</TableCell>
                   <TableCell className="text-sm">{c.monthly_hours_package || 0}h</TableCell>
                   <TableCell>
-                    <Badge variant={c.is_active ? 'default' : 'secondary'}>
+                    <Badge variant={c.is_active ? 'default' : 'secondary'} className={c.is_active ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20" : ""}>
                       {c.is_active ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
@@ -155,8 +164,9 @@ export default function Clients() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </CardContent>
+    </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

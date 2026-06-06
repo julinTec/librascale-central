@@ -10,6 +10,7 @@ import { Calendar, DollarSign, TrendingUp, TrendingDown, AlertTriangle, CheckCir
 import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS, COST_TYPE_LABELS, SCHEDULE_STATUS_V2_LABELS, SCHEDULE_STATUS_V2_COLORS } from '@/lib/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, lastDayOfMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const PIE_COLORS = ['hsl(152,45%,28%)', 'hsl(38,92%,50%)', 'hsl(0,72%,51%)', 'hsl(210,80%,52%)', 'hsl(152,20%,60%)', 'hsl(280,60%,50%)', 'hsl(30,80%,50%)'];
 
@@ -125,35 +126,44 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold tracking-tight">Painel de Controle</h1>
+        <p className="text-muted-foreground">Bem-vindo de volta! Aqui está um resumo do seu negócio hoje.</p>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex rounded-md border border-input overflow-hidden">
-          <Button size="sm" variant={filterMode === 'month' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('month')}>Mês</Button>
-          <Button size="sm" variant={filterMode === 'year' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('year')}>Ano</Button>
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-card/30 p-4 rounded-xl border border-border/50">
+        <div className="flex rounded-lg border border-input overflow-hidden bg-background">
+          <Button size="sm" variant={filterMode === 'month' ? 'default' : 'ghost'} className="rounded-none h-8 px-4" onClick={() => setFilterMode('month')}>Mês</Button>
+          <Button size="sm" variant={filterMode === 'year' ? 'default' : 'ghost'} className="rounded-none h-8 px-4" onClick={() => setFilterMode('year')}>Ano</Button>
         </div>
-        {filterMode === 'month' && (
-          <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+        <div className="flex items-center gap-2">
+          {filterMode === 'month' && (
+            <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
+              <SelectTrigger className="w-[140px] h-9 bg-background"><SelectValue /></SelectTrigger>
+              <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[100px] h-9 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
           </Select>
-        )}
-        <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
-          <SelectTrigger className="w-[100px] h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-        </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {kpis.map(kpi => (
-          <Card key={kpi.label}>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-                <span className="text-xs text-muted-foreground">{kpi.label}</span>
+          <Card key={kpi.label} className="border-none shadow-sm bg-card/50 backdrop-blur-sm hover:shadow-md transition-all duration-300">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn("p-2 rounded-lg bg-background/50", kpi.color.replace('text-', 'bg-').replace('text-', 'text-'))}>
+                  <kpi.icon className={cn("w-5 h-5", kpi.color)} />
+                </div>
               </div>
-              <p className="text-xl font-bold truncate">{kpi.value}</p>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-muted-foreground">{kpi.label}</p>
+                <p className="text-2xl font-bold tracking-tight">{kpi.value}</p>
+              </div>
             </CardContent>
           </Card>
         ))}

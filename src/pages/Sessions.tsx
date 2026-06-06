@@ -1,26 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type ScheduleStatusV2 = Database['public']['Enums']['schedule_status_v2'];
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Plus, Search, Pencil, Trash2, Calendar, Clock, User, Filter, MoreVertical, ChevronDown, ChevronRight, UserPlus, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Search, ChevronDown, ChevronRight, UserPlus, AlertTriangle, Trash2 } from 'lucide-react';
+import { format, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { SCHEDULE_STATUS_V2_LABELS, SCHEDULE_STATUS_V2_COLORS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_MODE_LABELS, EVENT_MODALITY_LABELS } from '@/lib/constants';
-import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { Database } from '@/integrations/supabase/types';
 
-const emptySession = { event_id: '', title: '', session_date: '', start_time: '', end_time: '', duration_minutes: 0, location: '', modality: 'presencial' as string, notes: '', status: 'agendada' as string };
-const emptyAssignment = { interpreter_id: '', service_role: '', payment_mode: 'por_sessao' as string, quantity: 1, unit_value: 0, total_value: 0, fee_expected: 0, fee_final: 0, transport_expected: 0, transport_final: 0, notes: '' };
+type ScheduleStatusV2 = Database['public']['Enums']['schedule_status_v2'];
+
+const emptySession = { event_id: '', title: '', session_date: '', start_time: '', end_time: '', duration_minutes: 0, location: '', modality: 'presencial' as 'presencial' | 'remoto' | 'hibrido', notes: '', status: 'agendada' as ScheduleStatusV2 };
+const emptyAssignment = { interpreter_id: '', service_role: '', payment_mode: 'por_sessao' as 'por_sessao' | 'por_diaria' | 'valor_fechado', quantity: 1, unit_value: 0, total_value: 0, fee_expected: 0, fee_final: 0, transport_expected: 0, transport_final: 0, notes: '' };
 
 export default function Agenda() {
   const { toast } = useToast();
@@ -79,52 +83,11 @@ export default function Agenda() {
     setExpanded(next);
   };
 
-  // Conflict = same professional allocated to overlapping sessions on same date
-  const getConflictNames = (s: any): string[] => {
-    if (s.status === 'cancelada') return [];
-    const myAssigns = allAssignmentsMap[s.id] || [];
-    if (myAssigns.length === 0) return [];
-    const conflicts = new Set<string>();
-    sessions.forEach(other => {
-      if (other.id === s.id || other.status === 'cancelada') return;
-      if (other.session_date !== s.session_date) return;
-      if (!(other.start_time < s.end_time && other.end_time > s.start_time)) return;
-      const otherAssigns = allAssignmentsMap[other.id] || [];
-      myAssigns.forEach(m => {
-        if (otherAssigns.some(o => o.interpreter_id === m.interpreter_id)) {
-          conflicts.add(m.full_name);
-        }
-      });
-    });
-    return Array.from(conflicts);
-  };
-
-  const handleDeleteSession = async (sessionId: string) => {
-    await supabase.from('event_assignments').delete().eq('session_id', sessionId);
-    const { error } = await supabase.from('event_sessions').delete().eq('id', sessionId);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Agenda excluída' });
-    load(); loadAllAssignments();
-  };
-
-  const handleDeleteAssignment = async (assignmentId: string, sessionId: string) => {
-    const { error } = await supabase.from('event_assignments').delete().eq('id', assignmentId);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Alocação removida' });
-    loadAssignments(sessionId); loadAllAssignments();
-  };
-
   const handleSave = async () => {
     if (!form.event_id || !form.session_date || !form.start_time || !form.end_time) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' }); return;
     }
-    const payload = {
-      event_id: form.event_id, title: form.title || null, session_date: form.session_date,
-      start_time: form.start_time, end_time: form.end_time,
-      duration_minutes: Number(form.duration_minutes) || null,
-      location: form.location || null, modality: form.modality as Database['public']['Enums']['event_modality'],
-      notes: form.notes || null, status: form.status as ScheduleStatusV2,
-    };
+    const payload = { ...form, duration_minutes: Number(form.duration_minutes) || 0, status: form.status as ScheduleStatusV2 };
     if (editing) {
       const { error } = await supabase.from('event_sessions').update(payload).eq('id', editing.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
@@ -140,25 +103,15 @@ export default function Agenda() {
     setEditing(s);
     setForm({
       event_id: s.event_id, title: s.title || '', session_date: s.session_date,
-      start_time: s.start_time?.slice(0, 5) || '', end_time: s.end_time?.slice(0, 5) || '',
-      duration_minutes: s.duration_minutes || 0, location: s.location || '',
-      modality: s.modality || 'presencial', notes: s.notes || '', status: s.status,
+      start_time: s.start_time, end_time: s.end_time, duration_minutes: s.duration_minutes || 0,
+      location: s.location || '', modality: s.modality || 'presencial', notes: s.notes || '', status: s.status,
     });
     setOpen(true);
   };
 
-  const handleSaveAssignment = async () => {
+  const handleSaveAssign = async () => {
     if (!assignForm.interpreter_id) { toast({ title: 'Selecione um profissional', variant: 'destructive' }); return; }
-    const payload = {
-      session_id: assignSessionId, interpreter_id: assignForm.interpreter_id,
-      service_role: assignForm.service_role || null, role: assignForm.service_role || null,
-      payment_mode: assignForm.payment_mode as Database['public']['Enums']['payment_mode'],
-      quantity: Number(assignForm.quantity) || 1, unit_value: Number(assignForm.unit_value) || 0,
-      total_value: Number(assignForm.total_value) || 0,
-      fee_expected: Number(assignForm.fee_expected), fee_final: Number(assignForm.fee_final) || null,
-      transport_expected: Number(assignForm.transport_expected), transport_final: Number(assignForm.transport_final) || null,
-      notes: assignForm.notes || null,
-    };
+    const payload = { ...assignForm, session_id: assignSessionId, quantity: Number(assignForm.quantity) || 0, unit_value: Number(assignForm.unit_value) || 0, total_value: Number(assignForm.total_value) || 0, fee_expected: Number(assignForm.fee_expected) || 0, fee_final: Number(assignForm.fee_final) || 0, transport_expected: Number(assignForm.transport_expected) || 0, transport_final: Number(assignForm.transport_final) || 0 };
     if (editingAssign) {
       const { error } = await supabase.from('event_assignments').update(payload).eq('id', editingAssign.id);
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
@@ -168,271 +121,260 @@ export default function Agenda() {
     }
     toast({ title: editingAssign ? 'Alocação atualizada' : 'Profissional alocado' });
     setAssignOpen(false); setEditingAssign(null); setAssignForm(emptyAssignment);
-    loadAssignments(assignSessionId);
+    loadAssignments(assignSessionId); loadAllAssignments();
   };
 
-  const sessionsWithoutProfessional = sessions.filter(s => s.status !== 'cancelada' && !(assignments[s.id]?.length > 0));
-
   const filtered = sessions.filter(s => {
-    const evName = (s.events as any)?.event_name || '';
-    const title = s.title || '';
-    const matchSearch = evName.toLowerCase().includes(search.toLowerCase()) || title.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (s.title || '').toLowerCase().includes(search.toLowerCase()) || (s.events?.event_name || '').toLowerCase().includes(search.toLowerCase());
     const matchEvent = filterEvent === 'all' || s.event_id === filterEvent;
     return matchSearch && matchEvent;
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Agenda</h1>
-        <Button onClick={() => { setEditing(null); setForm(emptySession); setOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Agenda
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Agenda & Execução</h1>
+          <p className="text-muted-foreground">Controle sessões, profissionais e conflitos em tempo real.</p>
+        </div>
+        <Button onClick={() => { setEditing(null); setForm(emptySession); setOpen(true); }} className="shadow-md hover:shadow-lg transition-all">
+          <Plus className="w-4 h-4 mr-2" /> Nova Agenda
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por evento ou título..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-0">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar por evento ou título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background/50 focus:bg-background transition-all" />
             </div>
             <Select value={filterEvent} onValueChange={setFilterEvent}>
-              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Evento" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-[200px] bg-background/50">
+                <SelectValue placeholder="Filtrar Evento" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os Eventos</SelectItem>
-                {events.map(ev => <SelectItem key={ev.id} value={ev.id}>{ev.event_name}</SelectItem>)}
+                {events.map(e => <SelectItem key={e.id} value={e.id}>{e.event_name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[40px]" />
-                <TableHead>Evento</TableHead>
-                <TableHead>Título</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Horário</TableHead>
-                <TableHead>Modalidade</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-[40px]" />
-                <TableHead className="w-[120px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(s => (
-                <>
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleExpand(s.id)}>
-                        {expanded.has(s.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                      </Button>
-                    </TableCell>
-                    <TableCell className="font-medium">{(s.events as any)?.event_name}</TableCell>
-                    <TableCell className="text-sm">{s.title || '—'}</TableCell>
-                    <TableCell>{format(new Date(s.session_date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}</TableCell>
-                    <TableCell className="text-sm">{EVENT_MODALITY_LABELS[s.modality] || s.modality}</TableCell>
-                    <TableCell><Badge className={SCHEDULE_STATUS_V2_COLORS[s.status]}>{SCHEDULE_STATUS_V2_LABELS[s.status]}</Badge></TableCell>
-                    <TableCell>
-                      {(() => {
-                        const conflicts = getConflictNames(s);
-                        return conflicts.length > 0 ? (
-                          <span title={`Conflito: ${conflicts.join(', ')} também alocado(s) em outra agenda neste horário`}>
-                            <AlertTriangle className="h-4 w-4 text-warning" />
-                          </span>
-                        ) : null;
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" title="Alocar profissional" onClick={() => {
-                          setAssignSessionId(s.id); setEditingAssign(null); setAssignForm(emptyAssignment); setAssignOpen(true);
-                        }}><UserPlus className="h-4 w-4" /></Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir agenda?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {(allAssignmentsMap[s.id]?.length || 0) > 0
-                                  ? `Esta agenda possui ${allAssignmentsMap[s.id]?.length} profissional(is) alocado(s). Todas as alocações serão removidas.`
-                                  : 'Esta ação não pode ser desfeita.'}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteSession(s.id)}>Excluir</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {expanded.has(s.id) && (
-                    <TableRow key={`${s.id}-assignments`}>
-                      <TableCell colSpan={9} className="bg-muted/30 p-4">
-                        <p className="text-sm font-medium mb-2">Profissionais Alocados</p>
-                        {(assignments[s.id] || []).length === 0 ? (
-                          <p className="text-xs text-muted-foreground">Nenhum profissional alocado.</p>
-                        ) : (
-                          <Table>
-                            <TableHeader><TableRow>
-                              <TableHead>Profissional</TableHead><TableHead>Função</TableHead>
-                              <TableHead>Mod. Pagamento</TableHead>
-                              <TableHead>Cachê Prev.</TableHead><TableHead>Cachê Final</TableHead>
-                              <TableHead>Transp. Prev.</TableHead><TableHead>Transp. Final</TableHead>
-                              <TableHead>Pagamento</TableHead><TableHead className="w-[60px]" />
-                            </TableRow></TableHeader>
-                            <TableBody>
-                              {(assignments[s.id] || []).map((a: any) => (
-                                <TableRow key={a.id}>
-                                  <TableCell>{(a.interpreters as any)?.full_name}</TableCell>
-                                  <TableCell>{a.service_role || a.role || '—'}</TableCell>
-                                  <TableCell><Badge variant="outline">{PAYMENT_MODE_LABELS[a.payment_mode] || a.payment_mode}</Badge></TableCell>
-                                  <TableCell>R$ {Number(a.fee_expected || 0).toFixed(2)}</TableCell>
-                                  <TableCell>R$ {Number(a.fee_final || 0).toFixed(2)}</TableCell>
-                                  <TableCell>R$ {Number(a.transport_expected || 0).toFixed(2)}</TableCell>
-                                  <TableCell>R$ {Number(a.transport_final || 0).toFixed(2)}</TableCell>
-                                  <TableCell><Badge className={PAYMENT_STATUS_COLORS[a.payment_status]}>{PAYMENT_STATUS_LABELS[a.payment_status]}</Badge></TableCell>
-                                  <TableCell>
-                                    <div className="flex gap-1">
-                                      <Button variant="ghost" size="icon" onClick={() => {
-                                        setAssignSessionId(s.id); setEditingAssign(a);
-                                        setAssignForm({
-                                          interpreter_id: a.interpreter_id, service_role: a.service_role || a.role || '',
-                                          payment_mode: a.payment_mode || 'por_sessao', quantity: a.quantity || 1,
-                                          unit_value: a.unit_value || 0, total_value: a.total_value || 0,
-                                          fee_expected: a.fee_expected || 0, fee_final: a.fee_final || 0,
-                                          transport_expected: a.transport_expected || 0, transport_final: a.transport_final || 0,
-                                          notes: a.notes || '',
-                                        });
-                                        setAssignOpen(true);
-                                      }}><Pencil className="h-3 w-3" /></Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="ghost" size="icon"><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Remover alocação?</AlertDialogTitle>
-                                            <AlertDialogDescription>O profissional será desvinculado desta agenda.</AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleDeleteAssignment(a.id, s.id)}>Remover</AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="rounded-xl border border-border/50 bg-background/50 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[40px]"></TableHead>
+                  <TableHead className="font-semibold py-4">Data & Horário</TableHead>
+                  <TableHead className="font-semibold py-4">Evento / Título</TableHead>
+                  <TableHead className="font-semibold py-4">Profissionais</TableHead>
+                  <TableHead className="font-semibold py-4">Status</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(s => {
+                  const isExp = expanded.has(s.id);
+                  const sessAssigns = allAssignmentsMap[s.id] || [];
+                  return (
+                    <>
+                      <TableRow key={s.id} className="cursor-pointer group hover:bg-muted/30 transition-colors" onClick={() => toggleExpand(s.id)}>
+                        <TableCell>
+                          {isExp ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-foreground">{format(new Date(s.session_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> {s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-semibold group-hover:text-primary transition-colors">{s.events?.event_name || '—'}</span>
+                            <span className="text-xs text-muted-foreground truncate max-w-[200px]">{s.title || (s.events?.clients?.name ? `Cliente: ${s.events.clients.name}` : '')}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex -space-x-2">
+                            {sessAssigns.length > 0 ? (
+                              sessAssigns.slice(0, 3).map((a, idx) => (
+                                <div key={idx} title={a.full_name} className="h-7 w-7 rounded-full border-2 border-background bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                  {a.full_name.charAt(0)}
+                                </div>
+                              ))
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] border-warning/30 text-warning bg-warning/5 gap-1">
+                                <AlertTriangle className="w-3 h-3" /> Sem Alocação
+                              </Badge>
+                            )}
+                            {sessAssigns.length > 3 && <div className="h-7 w-7 rounded-full border-2 border-background bg-muted text-muted-foreground flex items-center justify-center text-[10px]">+{sessAssigns.length - 3}</div>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={cn("text-[10px] uppercase font-bold px-2 py-0.5", SCHEDULE_STATUS_V2_COLORS[s.status] || 'bg-muted')}>
+                            {SCHEDULE_STATUS_V2_LABELS[s.status] || s.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell onClick={e => e.stopPropagation()}>
+                          <div className="flex gap-1 justify-end">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir agenda?</AlertDialogTitle>
+                                  <AlertDialogDescription>Esta ação removerá a sessão e todas as alocações vinculadas.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={async () => {
+                                    const { error } = await supabase.from('event_sessions').delete().eq('id', s.id);
+                                    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+                                    toast({ title: 'Agenda excluída' }); load();
+                                  }}>Excluir</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      <AnimatePresence>
+                        {isExp && (
+                          <TableRow className="bg-muted/20 border-l-2 border-primary/50">
+                            <TableCell colSpan={6} className="p-0 border-b">
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden p-6 space-y-4">
+                                <div className="flex items-center justify-between mb-4">
+                                  <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Profissionais Alocados</h4>
+                                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-semibold" onClick={() => { setAssignSessionId(s.id); setEditingAssign(null); setAssignForm(emptyAssignment); setAssignOpen(true); }}>
+                                    <UserPlus className="w-3.5 h-3.5" /> Adicionar Profissional
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  {(assignments[s.id] || []).length === 0 ? (
+                                    <p className="text-sm text-center py-6 text-muted-foreground bg-background/50 rounded-lg border border-dashed">Nenhum profissional alocado para esta sessão.</p>
+                                  ) : (
+                                    (assignments[s.id] || []).map(a => (
+                                      <div key={a.id} className="flex items-center justify-between p-3 bg-background rounded-lg border shadow-sm group/row">
+                                        <div className="flex items-center gap-3">
+                                          <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">{a.interpreters?.full_name?.charAt(0)}</div>
+                                          <div>
+                                            <p className="text-sm font-bold">{a.interpreters?.full_name}</p>
+                                            <p className="text-xs text-muted-foreground">{a.service_role || 'Sem função definida'}</p>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                          <div className="text-right hidden sm:block">
+                                            <p className="text-xs font-bold text-foreground">R$ {Number(a.total_value || 0).toLocaleString('pt-BR')}</p>
+                                            <p className="text-[10px] text-muted-foreground">Custo Total</p>
+                                          </div>
+                                          <div className="flex gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingAssign(a); setAssignSessionId(s.id); setAssignForm({ ...a }); setAssignOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => {
+                                              const { error } = await supabase.from('event_assignments').delete().eq('id', a.id);
+                                              if (error) { toast({ title: 'Erro', variant: 'destructive' }); return; }
+                                              loadAssignments(s.id); loadAllAssignments();
+                                            }}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </motion.div>
+                            </TableCell>
+                          </TableRow>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Nenhuma agenda encontrada.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      </AnimatePresence>
+                    </>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       {/* Agenda Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? 'Editar Agenda' : 'Nova Agenda'}</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label>Evento *</Label>
+        <DialogContent className="max-w-xl">
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editing ? 'Editar Agenda' : 'Nova Agenda'}</DialogTitle></DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label className="text-sm font-semibold">Evento Relacionado *</Label>
               <Select value={form.event_id} onValueChange={v => setForm({ ...form, event_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{events.map(ev => <SelectItem key={ev.id} value={ev.id}>{ev.event_name}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-muted/30"><SelectValue placeholder="Selecione um evento" /></SelectTrigger>
+                <SelectContent>{events.map(e => <SelectItem key={e.id} value={e.id}>{e.event_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Título da Agenda</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Sessão manhã, Ensaio..." /></div>
-            <div className="grid grid-cols-3 gap-4">
-              <div><Label>Data *</Label><Input type="date" value={form.session_date} onChange={e => setForm({ ...form, session_date: e.target.value })} /></div>
-              <div><Label>Início *</Label><Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} /></div>
-              <div><Label>Fim *</Label><Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-sm font-semibold">Data *</Label>
+                <Input type="date" value={form.session_date} onChange={e => setForm({ ...form, session_date: e.target.value })} className="bg-muted/30" />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-sm font-semibold">Título (opcional)</Label>
+                <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Abertura" className="bg-muted/30" />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div><Label>Local</Label><Input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} /></div>
-              <div>
-                <Label>Modalidade</Label>
-                <Select value={form.modality} onValueChange={v => setForm({ ...form, modality: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2"><Label className="text-sm font-semibold">Início *</Label><Input type="time" value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value })} className="bg-muted/30" /></div>
+              <div className="grid gap-2"><Label className="text-sm font-semibold">Fim *</Label><Input type="time" value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} className="bg-muted/30" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-sm font-semibold">Modalidade</Label>
+                <Select value={form.modality} onValueChange={v => setForm({ ...form, modality: v as any })}>
+                  <SelectTrigger className="bg-muted/30"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(EVENT_MODALITY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+              <div className="grid gap-2">
+                <Label className="text-sm font-semibold">Status</Label>
+                <Select value={form.status} onValueChange={v => setForm({ ...form, status: v as any })}>
+                  <SelectTrigger className={cn("bg-muted/30 font-bold", SCHEDULE_STATUS_V2_COLORS[form.status])}><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(SCHEDULE_STATUS_V2_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
-            <div><Label>Observações</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
-          </DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0"><Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90">Salvar Alterações</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Assignment Dialog */}
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingAssign ? 'Editar Alocação' : 'Alocar Profissional'}</DialogTitle></DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <Label>Profissional *</Label>
-              <Select value={assignForm.interpreter_id} onValueChange={v => setAssignForm({ ...assignForm, interpreter_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>{interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Função/Serviço</Label><Input value={assignForm.service_role} onChange={e => setAssignForm({ ...assignForm, service_role: e.target.value })} placeholder="Ex: Intérprete principal" /></div>
-              <div>
-                <Label>Mod. Pagamento</Label>
-                <Select value={assignForm.payment_mode} onValueChange={v => setAssignForm({ ...assignForm, payment_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle className="text-xl font-bold">{editingAssign ? 'Editar Alocação' : 'Alocar Profissional'}</DialogTitle></DialogHeader>
+          <div className="grid gap-6 py-4">
+             <div className="grid gap-2">
+                <Label className="text-sm font-semibold">Profissional *</Label>
+                <Select value={assignForm.interpreter_id} onValueChange={v => setAssignForm({ ...assignForm, interpreter_id: v })}>
+                  <SelectTrigger className="bg-muted/30"><SelectValue placeholder="Selecione um profissional" /></SelectTrigger>
+                  <SelectContent>{interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div><Label>Quantidade</Label><Input type="number" min={1} value={assignForm.quantity} onChange={e => setAssignForm({ ...assignForm, quantity: Number(e.target.value) })} /></div>
-              <div><Label>Valor Unitário (R$)</Label><Input type="number" step="0.01" value={assignForm.unit_value} onChange={e => setAssignForm({ ...assignForm, unit_value: Number(e.target.value) })} /></div>
-              <div><Label>Valor Total (R$)</Label><Input type="number" step="0.01" value={assignForm.total_value} onChange={e => setAssignForm({ ...assignForm, total_value: Number(e.target.value) })} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Cachê Previsto (R$)</Label><Input type="number" step="0.01" value={assignForm.fee_expected} onChange={e => setAssignForm({ ...assignForm, fee_expected: Number(e.target.value) })} /></div>
-              <div><Label>Cachê Final (R$)</Label><Input type="number" step="0.01" value={assignForm.fee_final} onChange={e => setAssignForm({ ...assignForm, fee_final: Number(e.target.value) })} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Transporte Previsto (R$)</Label><Input type="number" step="0.01" value={assignForm.transport_expected} onChange={e => setAssignForm({ ...assignForm, transport_expected: Number(e.target.value) })} /></div>
-              <div><Label>Transporte Final (R$)</Label><Input type="number" step="0.01" value={assignForm.transport_final} onChange={e => setAssignForm({ ...assignForm, transport_final: Number(e.target.value) })} /></div>
-            </div>
-            <div><Label>Observações</Label><Textarea value={assignForm.notes} onChange={e => setAssignForm({ ...assignForm, notes: e.target.value })} /></div>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2"><Label className="text-sm font-semibold">Papel / Função</Label><Input value={assignForm.service_role} onChange={e => setAssignForm({ ...assignForm, service_role: e.target.value })} placeholder="Ex: Intérprete Titular" className="bg-muted/30" /></div>
+                <div className="grid gap-2">
+                  <Label className="text-sm font-semibold">Forma Pagto</Label>
+                  <Select value={assignForm.payment_mode} onValueChange={v => setAssignForm({ ...assignForm, payment_mode: v as any })}>
+                    <SelectTrigger className="bg-muted/30"><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(PAYMENT_MODE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+             </div>
+             <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2"><Label className="text-sm font-semibold">Qtd</Label><Input type="number" value={assignForm.quantity} onChange={e => { const q = Number(e.target.value); setAssignForm({ ...assignForm, quantity: q, total_value: q * assignForm.unit_value }); }} className="bg-muted/30" /></div>
+                <div className="grid gap-2"><Label className="text-sm font-semibold">Valor Unit.</Label><Input type="number" step="0.01" value={assignForm.unit_value} onChange={e => { const u = Number(e.target.value); setAssignForm({ ...assignForm, unit_value: u, total_value: u * assignForm.quantity }); }} className="bg-muted/30" /></div>
+                <div className="grid gap-2"><Label className="text-sm font-semibold text-primary">Custo Total</Label><Input type="number" value={assignForm.total_value} readOnly className="bg-primary/5 border-primary/20 font-bold" /></div>
+             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveAssignment}>Salvar</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="ghost" onClick={() => setAssignOpen(false)}>Cancelar</Button><Button onClick={handleSaveAssign}>Confirmar Alocação</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
