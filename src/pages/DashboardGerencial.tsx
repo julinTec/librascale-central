@@ -77,7 +77,7 @@ export default function DashboardGerencial() {
 
   useEffect(() => {
     loadBIData();
-  }, [selectedYear, selectedClient, selectedQuarter]);
+  }, [selectedYear, selectedMonth, selectedClient, selectedQuarter]);
 
   const loadClients = async () => {
     const { data } = await supabase.from('clients').select('id, name');
