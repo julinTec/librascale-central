@@ -64,13 +64,13 @@ export function AppLayout() {
           </header>
           <main className="flex-1 overflow-auto bg-background/50">
             <div className="max-w-[1600px] mx-auto p-6 lg:p-8">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="popLayout" initial={false}>
                 <motion.div
                   key={location.pathname}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15, ease: "linear" }}
                 >
                   <Outlet />
                 </motion.div>
