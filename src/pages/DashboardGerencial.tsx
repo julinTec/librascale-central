@@ -39,10 +39,17 @@ const COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#6366F1', '#EC4899', '#8B5CF6'
 export default function DashboardGerencial() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState('todos');
   const [selectedClient, setSelectedClient] = useState('todos');
   const [selectedQuarter, setSelectedQuarter] = useState('todos');
   const [clients, setClients] = useState<any[]>([]);
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - 3 + i), []);
+  const months = [
+    { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' }, { value: '3', label: 'Março' },
+    { value: '4', label: 'Abril' }, { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
+    { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Setembro' },
+    { value: '10', label: 'Outubro' }, { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
+  ];
 
   const [mainKpis, setMainKpis] = useCachedState('bi:mainKpis', {
     totalRevenue: 0,
