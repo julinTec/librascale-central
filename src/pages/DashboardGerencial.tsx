@@ -3,7 +3,7 @@ import { useCachedState } from '@/lib/page-cache';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -39,10 +39,17 @@ const COLORS = ['#0EA5E9', '#10B981', '#F59E0B', '#6366F1', '#EC4899', '#8B5CF6'
 export default function DashboardGerencial() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState('todos');
   const [selectedClient, setSelectedClient] = useState('todos');
   const [selectedQuarter, setSelectedQuarter] = useState('todos');
   const [clients, setClients] = useState<any[]>([]);
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - 3 + i), []);
+  const months = [
+    { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' }, { value: '3', label: 'Março' },
+    { value: '4', label: 'Abril' }, { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
+    { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' }, { value: '9', label: 'Setembro' },
+    { value: '10', label: 'Outubro' }, { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
+  ];
 
   const [mainKpis, setMainKpis] = useCachedState('bi:mainKpis', {
     totalRevenue: 0,
@@ -70,7 +77,7 @@ export default function DashboardGerencial() {
 
   useEffect(() => {
     loadBIData();
-  }, [selectedYear, selectedClient, selectedQuarter]);
+  }, [selectedYear, selectedMonth, selectedClient, selectedQuarter]);
 
   const loadClients = async () => {
     const { data } = await supabase.from('clients').select('id, name');
@@ -84,7 +91,10 @@ export default function DashboardGerencial() {
     let startDate = startOfYear(new Date(selectedYear, 0, 1));
     let endDate = endOfYear(new Date(selectedYear, 0, 1));
 
-    if (selectedQuarter !== 'todos') {
+    if (selectedMonth !== 'todos') {
+      startDate = new Date(selectedYear, parseInt(selectedMonth) - 1, 1);
+      endDate = endOfMonth(startDate);
+    } else if (selectedQuarter !== 'todos') {
       const q = parseInt(selectedQuarter);
       startDate = new Date(selectedYear, (q - 1) * 3, 1);
       endDate = endOfMonth(new Date(selectedYear, q * 3 - 1, 1));
@@ -222,14 +232,37 @@ export default function DashboardGerencial() {
 
           <div className="flex items-center gap-2 bg-background border rounded-lg px-3 py-1 shadow-sm">
             <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
-              <SelectTrigger className="w-[110px] border-0 focus:ring-0 h-8 p-0"><SelectValue /></SelectTrigger>
+            <Select 
+              value={selectedQuarter !== 'todos' ? `q${selectedQuarter}` : selectedMonth !== 'todos' ? `m${selectedMonth}` : 'todos'} 
+              onValueChange={v => {
+                if (v === 'todos') {
+                  setSelectedQuarter('todos');
+                  setSelectedMonth('todos');
+                } else if (v.startsWith('q')) {
+                  setSelectedQuarter(v.substring(1));
+                  setSelectedMonth('todos');
+                } else if (v.startsWith('m')) {
+                  setSelectedMonth(v.substring(1));
+                  setSelectedQuarter('todos');
+                }
+              }}
+            >
+              <SelectTrigger className="w-[130px] border-0 focus:ring-0 h-8 p-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todo o Ano</SelectItem>
-                <SelectItem value="1">1º Trimestre</SelectItem>
-                <SelectItem value="2">2º Trimestre</SelectItem>
-                <SelectItem value="3">3º Trimestre</SelectItem>
-                <SelectItem value="4">4º Trimestre</SelectItem>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase opacity-50 px-2 py-1">Trimestres</SelectLabel>
+                  <SelectItem value="q1">1º Trimestre</SelectItem>
+                  <SelectItem value="q2">2º Trimestre</SelectItem>
+                  <SelectItem value="q3">3º Trimestre</SelectItem>
+                  <SelectItem value="q4">4º Trimestre</SelectItem>
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-[10px] font-bold uppercase opacity-50 px-2 py-1">Meses</SelectLabel>
+                  {months.map(m => (
+                    <SelectItem key={m.value} value={`m${m.value}`}>{m.label}</SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
