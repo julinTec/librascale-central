@@ -118,18 +118,19 @@ export default function Clients() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>CNPJ</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Pacote (h/mês)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="rounded-xl border border-border/50 bg-background/50 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="font-semibold py-4">Nome / Empresa</TableHead>
+                  <TableHead className="font-semibold py-4 text-center">Contratos</TableHead>
+                  <TableHead className="font-semibold py-4">Contato Principal</TableHead>
+                  <TableHead className="font-semibold py-4">Pacote (h/mês)</TableHead>
+                  <TableHead className="font-semibold py-4">Status</TableHead>
+                  <TableHead className="w-[100px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>
