@@ -10,6 +10,7 @@ import { Calendar, DollarSign, TrendingUp, TrendingDown, AlertTriangle, CheckCir
 import { EVENT_STATUS_LABELS, EVENT_STATUS_COLORS, COST_TYPE_LABELS, SCHEDULE_STATUS_V2_LABELS, SCHEDULE_STATUS_V2_COLORS } from '@/lib/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format, lastDayOfMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const PIE_COLORS = ['hsl(152,45%,28%)', 'hsl(38,92%,50%)', 'hsl(0,72%,51%)', 'hsl(210,80%,52%)', 'hsl(152,20%,60%)', 'hsl(280,60%,50%)', 'hsl(30,80%,50%)'];
 
