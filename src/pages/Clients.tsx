@@ -139,7 +139,7 @@ export default function Clients() {
                       {c.trade_name && <p className="text-xs text-muted-foreground">{c.trade_name}</p>}
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm">{c.cnpj || '-'}</TableCell>
+                  <TableCell className="text-sm text-center font-mono">{c.cnpj || '-'}</TableCell>
                   <TableCell className="text-sm">{c.email || c.phone || '-'}</TableCell>
                   <TableCell className="text-sm">{c.monthly_hours_package || 0}h</TableCell>
                   <TableCell>
