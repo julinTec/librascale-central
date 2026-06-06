@@ -23,8 +23,8 @@ import type { Database } from '@/integrations/supabase/types';
 
 type ScheduleStatusV2 = Database['public']['Enums']['schedule_status_v2'];
 
-const emptySession = { event_id: '', title: '', session_date: '', start_time: '', end_time: '', duration_minutes: 0, location: '', modality: 'presencial' as string, notes: '', status: 'agendada' as string };
-const emptyAssignment = { interpreter_id: '', service_role: '', payment_mode: 'por_sessao' as string, quantity: 1, unit_value: 0, total_value: 0, fee_expected: 0, fee_final: 0, transport_expected: 0, transport_final: 0, notes: '' };
+const emptySession = { event_id: '', title: '', session_date: '', start_time: '', end_time: '', duration_minutes: 0, location: '', modality: 'presencial' as 'presencial' | 'remoto' | 'hibrido', notes: '', status: 'agendada' as ScheduleStatusV2 };
+const emptyAssignment = { interpreter_id: '', service_role: '', payment_mode: 'por_sessao' as 'por_sessao' | 'por_diaria' | 'valor_fechado', quantity: 1, unit_value: 0, total_value: 0, fee_expected: 0, fee_final: 0, transport_expected: 0, transport_final: 0, notes: '' };
 
 export default function Agenda() {
   const { toast } = useToast();
