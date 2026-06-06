@@ -132,21 +132,23 @@ export default function Dashboard() {
         <p className="text-muted-foreground">Bem-vindo de volta! Aqui está um resumo do seu negócio hoje.</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex rounded-md border border-input overflow-hidden">
-          <Button size="sm" variant={filterMode === 'month' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('month')}>Mês</Button>
-          <Button size="sm" variant={filterMode === 'year' ? 'default' : 'ghost'} className="rounded-none" onClick={() => setFilterMode('year')}>Ano</Button>
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-card/30 p-4 rounded-xl border border-border/50">
+        <div className="flex rounded-lg border border-input overflow-hidden bg-background">
+          <Button size="sm" variant={filterMode === 'month' ? 'default' : 'ghost'} className="rounded-none h-8 px-4" onClick={() => setFilterMode('month')}>Mês</Button>
+          <Button size="sm" variant={filterMode === 'year' ? 'default' : 'ghost'} className="rounded-none h-8 px-4" onClick={() => setFilterMode('year')}>Ano</Button>
         </div>
-        {filterMode === 'month' && (
-          <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
-            <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+        <div className="flex items-center gap-2">
+          {filterMode === 'month' && (
+            <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
+              <SelectTrigger className="w-[140px] h-9 bg-background"><SelectValue /></SelectTrigger>
+              <SelectContent>{MONTHS.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+            </Select>
+          )}
+          <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-[100px] h-9 bg-background"><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
           </Select>
-        )}
-        <Select value={String(selectedYear)} onValueChange={v => setSelectedYear(Number(v))}>
-          <SelectTrigger className="w-[100px] h-9"><SelectValue /></SelectTrigger>
-          <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
-        </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
