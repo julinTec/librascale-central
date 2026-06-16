@@ -178,11 +178,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c5">
+            <AccordionItem value="c4">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-violet-600" />
-                  Cláusula 5 — Inteligência Artificial (IA)
+                  Cláusula 4 — Inteligência Artificial (IA)
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground">
