@@ -133,11 +133,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c3">
+            <AccordionItem value="c2">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
-                  Cláusula 3 — Escopo contratado
+                  Cláusula 2 — Escopo contratado
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
