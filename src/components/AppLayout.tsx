@@ -1,7 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Home as HomeIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/NotificationBell';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -20,6 +20,14 @@ export function AppLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-16 flex items-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-30 px-6 shrink-0 transition-all">
             <SidebarTrigger className="mr-4" />
+            {location.pathname !== '/inicio' && (
+              <Button asChild variant="outline" size="sm" className="gap-2">
+                <Link to="/inicio">
+                  <HomeIcon className="h-4 w-4" />
+                  <span className="hidden sm:inline">Voltar ao Início</span>
+                </Link>
+              </Button>
+            )}
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-primary transition-colors" aria-label="Central de Ajuda">
