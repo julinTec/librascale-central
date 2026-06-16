@@ -95,7 +95,7 @@ export default function Quotes() {
   };
 
   useEffect(() => {
-    const ch = supabase.channel('quote_intakes_changes')
+    const ch = supabase.channel(`quote_intakes_changes_${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quote_intakes' }, () => loadIntakes())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
