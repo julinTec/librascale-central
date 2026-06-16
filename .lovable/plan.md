@@ -1,49 +1,51 @@
-## Diagnóstico
+# Diagnóstico de fluidez do sistema
 
-Revisei o sistema (App.tsx, AuthContext, AppLayout, NavLink, páginas). **O sistema está funcionando corretamente** — não há reload real, autenticação não se perde, e a navegação usa React Router (SPA), não recarregamento completo.
+Fiz uma varredura no `App.tsx`, `AppLayout`, `page-cache`, e nos pesos das páginas/dependências. O sistema **funciona bem** — a sensação de "peso" vem de 4 pontos concretos abaixo.
 
-O "piscar / zerar tudo / depois carregar" que você está vendo é um efeito visual causado por como cada página foi construída:
+## O que está pesando hoje
 
-1. Ao clicar no menu, o React Router troca a rota instantaneamente.
-2. A nova página (Dashboard, Eventos, Financeiro, etc.) **monta do zero** com estado vazio (`useState([])`, `stats = 0`).
-3. Em seguida, ela dispara as consultas ao banco via `useEffect` → durante ~200-800ms a tela mostra área branca / cards vazios / "0".
-4. Quando os dados chegam, tudo aparece de uma vez → parece que "carregou de novo".
+1. **Bundle inicial gigante** — `App.tsx` faz `import` estático de **TODAS** as 16 páginas (Quotes 847 linhas, Events 564, DashboardGerencial 474, Finance 403, Reports 394 + `recharts` + `jspdf` + `framer-motion`). Tudo isso é baixado e parseado já no primeiro load, mesmo que o usuário só vá ao `/inicio`. Isto é o maior causador da lentidão inicial.
 
-Ou seja: **não há bug**, mas a experiência fica ruim porque nenhuma página tem skeleton/loading state e nenhum dado é cacheado entre visitas.
+2. **Animação de transição custosa** — `AppLayout` usa `AnimatePresence mode="popLayout"` com `framer-motion` envolvendo cada rota. O `popLayout` força reflow do `<main>` inteiro a cada navegação e adiciona um frame extra antes de pintar.
 
-## O que vou propor (sem mexer em lógica de negócio)
+3. **Páginas refazem N queries em paralelo sem suspensão** — ex.: Quotes faz 19 chamadas `supabase.from`, Events 15, Sessions 13. Cada visita refaz tudo do zero. Já existe `useCachedState` no Dashboard, mas as outras páginas não usam — então sair/voltar recarrega tudo.
 
-### 1. Cache de dados entre navegações (ganho maior)
-Hoje o `QueryClient` do React Query existe mas **nenhuma página usa `useQuery`** — todas usam `useState + useEffect + supabase` direto. Isso significa que sair e voltar para a mesma página recarrega tudo do zero.
+4. **Cache nunca expira** — `page-cache.ts` é um `Map` em memória sem TTL nem invalidação por mutação. Hoje não causa bug porque cada página recarrega via `useEffect`, mas convém deixar mais previsível (TTL curto + helper de invalidação por prefixo).
 
-Em vez de refatorar todas as páginas (trabalho enorme), vou:
-- Configurar o `QueryClient` com `staleTime` razoável e `keepPreviousData`.
-- Adicionar um wrapper leve `usePageData` ou simplesmente um cache em memória (Map) por chave de rota, para que ao voltar a uma página os últimos dados apareçam imediatamente enquanto a atualização ocorre em background.
+## O que vou alterar (sem quebrar nada e sem fluxo novo)
 
-### 2. Skeleton/placeholder enquanto carrega
-Adicionar um estado `loading` visível em cada página principal (Dashboard, Eventos, Financeiro, Orçamentos, Agenda) com componentes `Skeleton` do shadcn no lugar dos cards/tabelas. Em vez de "tudo zerado → tudo cheio", você verá "tudo cinza animado → tudo cheio", o que parece muito mais profissional e elimina a sensação de "piscar".
+### 1. Code-splitting por rota (impacto maior)
+- Em `src/App.tsx`, converter os `import` das páginas autenticadas para `React.lazy(...)` e envolver `<Routes>` em `<Suspense fallback={...}>` usando um spinner discreto (mesmo "Carregando..." já usado).
+- `Login`, `Home` e `PublicQuoteIntake` ficam estáticos (são a primeira tela mais comum).
+- Resultado esperado: primeiro carregamento e troca de página muito mais rápidos; cada módulo só baixa quando acessado. `recharts` e `jspdf` saem do bundle inicial automaticamente.
 
-### 3. Transição suave entre rotas
-Adicionar uma classe de transição (`fade-in`) no `<main>` do `AppLayout` para o conteúdo aparecer com fade de 150ms em vez de pop instantâneo.
+### 2. Transição mais leve no AppLayout
+- Trocar `AnimatePresence mode="popLayout"` por `mode="wait"` removido + uma única `motion.div` com `key={pathname}` e transição `opacity` de 100ms. Mantém o fade que você gostou, mas sem reflow duplo.
+- `framer-motion` continua sendo usado (não removo dependência).
 
-### 4. Verificação rápida de saúde
-Vou rodar uma checagem ao vivo (browser tool) navegando entre 3-4 páginas para confirmar que:
-- A sessão não se perde.
-- Não há requests duplicados.
-- Não há erro no console.
-- O tempo médio de carregamento de cada página está OK.
+### 3. Cache leve com TTL
+- Em `src/lib/page-cache.ts`: adicionar `ttlMs` opcional (default 60s) em `setCached`, e helper `invalidateByPrefix(prefix)` para o futuro. API existente (`useCachedState`) permanece 100% compatível — nenhuma página atual precisa mudar.
 
-## Arquivos a alterar
+### 4. Pequenos ajustes de render
+- `AppSidebar` e `AppLayout`: garantir que os ícones e o `DropdownMenu` não re-renderizam em toda navegação (memoizar o conteúdo do header que não depende de `location`).
+- Sem mudanças de estilo nem de menu.
 
-- `src/App.tsx` — configurar `QueryClient` (staleTime, gcTime).
-- `src/components/AppLayout.tsx` — adicionar fade-in no `<main>` e `key={location.pathname}`.
-- `src/lib/page-cache.ts` (novo) — cache simples em memória por rota.
-- `src/pages/Dashboard.tsx`, `Events.tsx`, `Finance.tsx`, `Quotes.tsx`, `Sessions.tsx` — adicionar estado `loading` + Skeletons + integrar cache.
-- `src/components/ui/skeleton.tsx` já existe, será reutilizado.
+## O que **não** vou mexer
 
-## O que NÃO vou mudar
+- Nenhuma lógica de negócio, query, RLS, edge function, schema.
+- Nenhuma página individual será reescrita (sem refator de useEffect→useQuery).
+- Sem mudança em rotas, menu, design, cores, fluxo de auth, PWA.
+- Sem remoção/troca de dependências.
 
-- Lógica de banco, RLS, edge functions, autenticação, PWA — tudo permanece igual.
-- Estrutura do menu, design system, cores.
+## Arquivos a editar
+
+- `src/App.tsx` — lazy + Suspense.
+- `src/components/AppLayout.tsx` — transição mais leve + memo no header.
+- `src/lib/page-cache.ts` — TTL opcional + invalidate helper (compatível).
+
+## Como vou validar
+
+- Build automático do harness deve passar.
+- Abrir o preview, navegar `/inicio → /eventos → /financeiro → /orcamentos → /inicio` e conferir console/network: sem erros, chunks separados sendo baixados sob demanda, transição sem "piscar branco".
 
 Posso seguir com a implementação?
