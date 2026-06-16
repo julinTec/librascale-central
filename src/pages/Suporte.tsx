@@ -12,7 +12,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LifeBuoy, Loader2 } from 'lucide-react';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LifeBuoy, Loader2, FileText, AlertTriangle, Sparkles, Wrench, ListChecks, Info } from 'lucide-react';
 
 type Chamado = {
   id: string;
@@ -89,7 +93,146 @@ export default function Suporte() {
           <p className="text-sm text-muted-foreground">
             Abra um chamado e acompanhe as respostas do nosso time.
           </p>
-        </div>
+      </div>
+
+      {/* Aviso destacado — limites do escopo contratado */}
+      <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-900 dark:text-amber-200">
+          Antes de abrir um chamado — leia o escopo do serviço
+        </AlertTitle>
+        <AlertDescription className="text-amber-900/90 dark:text-amber-200/90">
+          O contrato inicial cobre o desenvolvimento e entrega da solução. <b>Manutenção contínua,
+          novas funcionalidades, integrações, automações e IA</b> não fazem parte do escopo original
+          e podem ser contratadas via planos de evolução. Veja os detalhes abaixo.
+        </AlertDescription>
+      </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4 text-primary" />
+            Termos e escopo da prestação de serviços
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="multiple" className="w-full">
+            <AccordionItem value="c2">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-primary" />
+                  Cláusula 2 — Solução desenvolvida
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <p>A solução contratada contempla:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Sistema operacional para gestão de agendas, clientes, intérpretes, ocorrências e consolidação de informações.</li>
+                  <li>Business Intelligence (BI), dashboards gerenciais, auditoria operacional e análise de indicadores.</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="c3">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <ListChecks className="h-4 w-4 text-primary" />
+                  Cláusula 3 — Escopo contratado
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-1">
+                <p>Contempla exclusivamente:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Desenvolvimento inicial da solução</li>
+                  <li>Implementação das funcionalidades alinhadas inicialmente</li>
+                  <li>Estruturação do sistema</li>
+                  <li>Construção do BI</li>
+                  <li>Entrega funcional da solução</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="c4">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  Cláusula 4 — Limitações do escopo (não incluso)
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground">
+                <p className="mb-2">
+                  Os itens abaixo <b>não fazem parte</b> do escopo originalmente contratado e
+                  devem ser tratados como evolução/contratação adicional:
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Manutenção contínua</li>
+                  <li>Suporte permanente</li>
+                  <li>Novas funcionalidades</li>
+                  <li>Integrações futuras</li>
+                  <li>Customizações adicionais</li>
+                  <li>Automações futuras</li>
+                  <li>Hospedagens externas</li>
+                  <li>APIs externas</li>
+                  <li>Sustentação mensal da plataforma</li>
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="c5">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-violet-600" />
+                  Cláusula 5 — Inteligência Artificial (IA)
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground">
+                Implementações envolvendo IA, automações inteligentes, consumo de APIs externas,
+                assistentes virtuais ou funcionalidades avançadas de IA <b>não fazem parte</b> do
+                escopo inicialmente contratado e dependem de nova proposta.
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="c6">
+              <AccordionTrigger className="text-sm font-medium">
+                <span className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-sky-600" />
+                  Cláusula 6 — Planos futuros de manutenção e evolução
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground space-y-2">
+                <p>
+                  Manutenção, suporte técnico, melhorias evolutivas e novas implementações podem
+                  ser contratadas através das modalidades:
+                </p>
+                <div className="grid sm:grid-cols-3 gap-2">
+                  <div className="rounded-md border p-3">
+                    <div className="font-semibold text-foreground text-sm">Plano Básico</div>
+                    <div className="text-xs">Correções e suporte essencial.</div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="font-semibold text-foreground text-sm">Plano Profissional</div>
+                    <div className="text-xs">Suporte + pequenas evoluções recorrentes.</div>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <div className="font-semibold text-foreground text-sm">Plano Premium</div>
+                    <div className="text-xs">Evolução contínua, integrações e prioridade máxima.</div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          <div className="mt-4 flex items-start gap-2 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <Info className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+            <span>
+              <b>Como classificar seu chamado:</b> dúvidas de uso e ajustes dentro do escopo
+              entregue são atendidos normalmente. Pedidos de <b>novas funcionalidades</b>,
+              <b> integrações</b>, <b>automações</b> ou <b>IA</b> serão registrados como
+              <i> demanda de evolução</i> e encaminhados para orçamento conforme Cláusula 10.
+            </span>
+          </div>
+        </CardContent>
+      </Card>
       </div>
 
       <Card>
