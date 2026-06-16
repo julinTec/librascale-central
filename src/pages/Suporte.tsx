@@ -192,11 +192,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c6">
+            <AccordionItem value="c5">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-sky-600" />
-                  Cláusula 6 — Planos futuros de manutenção e evolução
+                  Cláusula 5 — Planos futuros de manutenção e evolução
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2">
