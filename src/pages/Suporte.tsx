@@ -12,7 +12,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { LifeBuoy, Loader2 } from 'lucide-react';
+import {
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LifeBuoy, Loader2, FileText, AlertTriangle, Sparkles, Wrench, ListChecks, Info } from 'lucide-react';
 
 type Chamado = {
   id: string;
