@@ -152,11 +152,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c4">
+            <AccordionItem value="c3">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  Cláusula 4 — Limitações do escopo (não incluso)
+                  Cláusula 3 — Limitações do escopo (não incluso)
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground">
