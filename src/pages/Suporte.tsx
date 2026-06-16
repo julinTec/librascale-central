@@ -117,11 +117,11 @@ export default function Suporte() {
         </CardHeader>
         <CardContent>
           <Accordion type="multiple" className="w-full">
-            <AccordionItem value="c2">
+            <AccordionItem value="c1">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
-                  Cláusula 2 — Solução desenvolvida
+                  Cláusula 1 — Solução desenvolvida
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2">
