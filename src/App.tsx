@@ -19,6 +19,7 @@ import SettingsPage from "./pages/SettingsPage";
 import DashboardGerencial from "./pages/DashboardGerencial";
 import Help from "./pages/Help";
 import Install from "./pages/Install";
+import Suporte from "./pages/Suporte";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/dashboard-gerencial" element={<DashboardGerencial />} />
               <Route path="/ajuda" element={<Help />} />
               <Route path="/instalar" element={<Install />} />
+              <Route path="/suporte" element={<Suporte />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1147,6 +1147,45 @@ export type Database = {
           },
         ]
       }
+      suporte_chamados: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          monitor_id: string | null
+          prioridade: string
+          status: string
+          thread: Json
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          monitor_id?: string | null
+          prioridade?: string
+          status?: string
+          thread?: Json
+          titulo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          monitor_id?: string | null
+          prioridade?: string
+          status?: string
+          thread?: Json
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tax_settings: {
         Row: {
           created_at: string

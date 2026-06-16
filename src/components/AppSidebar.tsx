@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Mic, FileText, Calendar, Layers,
-  DollarSign, BarChart3, Settings, LogOut, PieChart, HelpCircle,
+  DollarSign, BarChart3, Settings, LogOut, PieChart, HelpCircle, LifeBuoy,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -27,6 +27,7 @@ const menuItems = [
   { title: 'Relatórios', url: '/relatorios', icon: BarChart3 },
   { title: 'Dashboard Gerencial', url: '/dashboard-gerencial', icon: PieChart },
   { title: 'Ajuda', url: '/ajuda', icon: HelpCircle },
+  { title: 'Suporte', url: '/suporte', icon: LifeBuoy },
   { title: 'Configurações', url: '/configuracoes', icon: Settings },
 ];
 
