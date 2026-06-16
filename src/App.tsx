@@ -20,6 +20,7 @@ import DashboardGerencial from "./pages/DashboardGerencial";
 import Help from "./pages/Help";
 import Install from "./pages/Install";
 import Suporte from "./pages/Suporte";
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -43,7 +44,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return null;
-  if (session) return <Navigate to="/dashboard" replace />;
+  if (session) return <Navigate to="/inicio" replace />;
   return <>{children}</>;
 }
 
@@ -57,8 +58,9 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/orcamento/preencher/:token" element={<PublicQuoteIntake />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/inicio" replace />} />
             <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+              <Route path="/inicio" element={<Home />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/clientes" element={<Clients />} />
               <Route path="/interpretes" element={<Interpreters />} />
