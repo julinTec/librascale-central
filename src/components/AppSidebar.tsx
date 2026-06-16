@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Mic, FileText, Calendar, Layers,
-  DollarSign, BarChart3, Settings, LogOut, PieChart, HelpCircle, LifeBuoy,
+  DollarSign, BarChart3, Settings, LogOut, PieChart, HelpCircle, LifeBuoy, Home,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
@@ -17,7 +17,8 @@ import { Button } from '@/components/ui/button';
 import logo from '@/assets/logo.png';
 
 const menuItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Início', url: '/inicio', icon: Home },
+  { title: 'Geral', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Clientes', url: '/clientes', icon: Users },
   { title: 'Profissionais', url: '/interpretes', icon: Mic },
   { title: 'Orçamentos', url: '/orcamentos', icon: FileText },
