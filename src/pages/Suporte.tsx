@@ -117,11 +117,11 @@ export default function Suporte() {
         </CardHeader>
         <CardContent>
           <Accordion type="multiple" className="w-full">
-            <AccordionItem value="c2">
+            <AccordionItem value="c1">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
-                  Cláusula 2 — Solução desenvolvida
+                  Cláusula 1 — Solução desenvolvida
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2">
@@ -133,11 +133,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c3">
+            <AccordionItem value="c2">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <ListChecks className="h-4 w-4 text-primary" />
-                  Cláusula 3 — Escopo contratado
+                  Cláusula 2 — Escopo contratado
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
@@ -152,11 +152,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c4">
+            <AccordionItem value="c3">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  Cláusula 4 — Limitações do escopo (não incluso)
+                  Cláusula 3 — Limitações do escopo (não incluso)
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground">
@@ -178,11 +178,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c5">
+            <AccordionItem value="c4">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-violet-600" />
-                  Cláusula 5 — Inteligência Artificial (IA)
+                  Cláusula 4 — Inteligência Artificial (IA)
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground">
@@ -192,11 +192,11 @@ export default function Suporte() {
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="c6">
+            <AccordionItem value="c5">
               <AccordionTrigger className="text-sm font-medium">
                 <span className="flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-sky-600" />
-                  Cláusula 6 — Planos futuros de manutenção e evolução
+                  Cláusula 5 — Planos futuros de manutenção e evolução
                 </span>
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-2">
