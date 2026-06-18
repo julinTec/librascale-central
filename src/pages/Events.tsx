@@ -31,7 +31,7 @@ const emptyForm = {
   billing_type: 'unico' as string,
 };
 
-const emptyService = { service_type: 'interprete_libras' as string, description: '', quantity: 1, billing_mode: 'valor_fechado' as string, expected_value: 0, notes: '' };
+const emptyService = { service_type: 'interprete_libras' as string, description: '', quantity: 1, billing_mode: 'valor_fechado' as string, daily_value: 0, expected_value: 0, notes: '' };
 
 export default function Events() {
   const { user } = useAuth();
@@ -188,7 +188,8 @@ export default function Events() {
       setSvcOpen(false); setSvcForm(emptyService);
       return;
     }
-    const payload = { ...svcForm, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
+    const { daily_value, ...svcRest } = svcForm as any;
+    const payload = { ...svcRest, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
     const { error } = await supabase.from('event_services').insert(payload);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Serviço adicionado' });
@@ -522,7 +523,7 @@ export default function Events() {
             </div>
             <div><Label>Descrição</Label><Input value={svcForm.description} onChange={e => setSvcForm({ ...svcForm, description: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Quantidade</Label><Input type="number" min={1} value={svcForm.quantity} onChange={e => setSvcForm({ ...svcForm, quantity: Number(e.target.value) })} /></div>
+              <div><Label>Quantidade</Label><Input type="number" min={1} value={svcForm.quantity} onChange={e => { const q = Number(e.target.value); setSvcForm({ ...svcForm, quantity: q, ...(svcForm.daily_value > 0 ? { expected_value: Number((svcForm.daily_value * q).toFixed(2)) } : {}) }); }} /></div>
               <div>
                 <Label>Forma de Cobrança</Label>
                 <Select value={svcForm.billing_mode} onValueChange={v => setSvcForm({ ...svcForm, billing_mode: v })}>
@@ -531,7 +532,29 @@ export default function Events() {
                 </Select>
               </div>
             </div>
-            <div><Label>Valor Previsto (R$)</Label><Input type="number" step="0.01" value={svcForm.expected_value} onChange={e => setSvcForm({ ...svcForm, expected_value: Number(e.target.value) })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Valor Diária (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={svcForm.daily_value}
+                  onChange={e => {
+                    const dv = Number(e.target.value);
+                    setSvcForm({ ...svcForm, daily_value: dv, expected_value: Number((dv * Number(svcForm.quantity || 1)).toFixed(2)) });
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Valor Total Pago (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={svcForm.expected_value}
+                  onChange={e => setSvcForm({ ...svcForm, expected_value: Number(e.target.value) })}
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSvcOpen(false)}>Cancelar</Button>
