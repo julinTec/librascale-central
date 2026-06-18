@@ -132,22 +132,54 @@ export default function Agenda() {
   // Normalize event name (trim + collapse spaces + lowercase) to dedupe duplicates
   const normalizeName = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
+  // Build event options FROM sessions (only events that actually have agendas),
+  // deduped by normalized name and with a count of matching sessions.
   const uniqueEvents = useMemo(() => {
-    const map = new Map<string, string>(); // norm -> display name (first occurrence preserved)
-    events.forEach(e => {
-      const norm = normalizeName(e.event_name);
-      if (norm && !map.has(norm)) map.set(norm, (e.event_name || '').trim().replace(/\s+/g, ' '));
+    const map = new Map<string, { name: string; count: number }>();
+    sessions.forEach(s => {
+      const raw = s.events?.event_name || '';
+      const norm = normalizeName(raw);
+      if (!norm) return;
+      const display = raw.trim().replace(/\s+/g, ' ');
+      const cur = map.get(norm);
+      if (cur) cur.count += 1;
+      else map.set(norm, { name: display, count: 1 });
     });
     return Array.from(map.entries())
-      .map(([norm, name]) => ({ norm, name }))
+      .map(([norm, v]) => ({ norm, name: v.name, count: v.count }))
       .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-  }, [events]);
+  }, [sessions]);
 
+  // Years available consider the currently-selected event filter
   const availableYears = useMemo(() => {
     const years = new Set<string>();
-    sessions.forEach(s => { if (s.session_date) years.add(s.session_date.slice(0, 4)); });
+    sessions.forEach(s => {
+      if (!s.session_date) return;
+      if (filterEvent !== 'all' && normalizeName(s.events?.event_name || '') !== filterEvent) return;
+      years.add(s.session_date.slice(0, 4));
+    });
     return Array.from(years).sort((a, b) => b.localeCompare(a));
-  }, [sessions]);
+  }, [sessions, filterEvent]);
+
+  // Months available consider event + year selection
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    sessions.forEach(s => {
+      if (!s.session_date) return;
+      if (filterEvent !== 'all' && normalizeName(s.events?.event_name || '') !== filterEvent) return;
+      if (filterYear !== 'all' && s.session_date.slice(0, 4) !== filterYear) return;
+      months.add(s.session_date.slice(5, 7));
+    });
+    return months;
+  }, [sessions, filterEvent, filterYear]);
+
+  // Auto-reset year/month if they become invalid for the new event selection
+  useEffect(() => {
+    if (filterYear !== 'all' && !availableYears.includes(filterYear)) setFilterYear('all');
+  }, [availableYears, filterYear]);
+  useEffect(() => {
+    if (filterMonth !== 'all' && !availableMonths.has(filterMonth)) setFilterMonth('all');
+  }, [availableMonths, filterMonth]);
 
   const MONTHS = [
     { v: '01', l: 'Janeiro' }, { v: '02', l: 'Fevereiro' }, { v: '03', l: 'Março' },
@@ -232,7 +264,8 @@ export default function Agenda() {
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
                     >
                       <Check className={cn('w-4 h-4 shrink-0', filterEvent === opt.norm ? 'opacity-100' : 'opacity-0')} />
-                      <span className="truncate">{opt.name}</span>
+                      <span className="truncate flex-1">{opt.name}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">{opt.count}</span>
                     </button>
                   ))}
                 </div>
@@ -255,7 +288,9 @@ export default function Agenda() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os Meses</SelectItem>
-                {MONTHS.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
+                {MONTHS.filter(m => availableMonths.has(m.v)).map(m => (
+                  <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
