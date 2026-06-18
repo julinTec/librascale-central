@@ -264,7 +264,8 @@ export default function Agenda() {
                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
                     >
                       <Check className={cn('w-4 h-4 shrink-0', filterEvent === opt.norm ? 'opacity-100' : 'opacity-0')} />
-                      <span className="truncate">{opt.name}</span>
+                      <span className="truncate flex-1">{opt.name}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums">{opt.count}</span>
                     </button>
                   ))}
                 </div>
