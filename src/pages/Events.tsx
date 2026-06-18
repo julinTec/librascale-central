@@ -145,10 +145,24 @@ export default function Events() {
       const { data, error } = await supabase.from('events').insert({ ...payload, created_by: user?.id }).select('id').single();
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
       savedId = data?.id;
+      // Persist pending services collected before the event existed
+      if (savedId && services.length > 0) {
+        const rows = services.map(s => ({
+          event_id: savedId,
+          service_type: s.service_type,
+          description: s.description || null,
+          quantity: Number(s.quantity) || 1,
+          billing_mode: s.billing_mode,
+          expected_value: Number(s.expected_value) || 0,
+          notes: s.notes || null,
+        }));
+        const { error: svcErr } = await supabase.from('event_services').insert(rows);
+        if (svcErr) toast({ title: 'Erro ao salvar serviços', description: svcErr.message, variant: 'destructive' });
+      }
     }
     if (savedId) await upsertReceivable(savedId, form);
     toast({ title: editing ? 'Evento atualizado' : 'Evento criado', description: Number(form.contract_value) > 0 ? 'Receita vinculada atualizada no Financeiro.' : undefined });
-    setOpen(false); setEditing(null); setForm(emptyForm); setLinkedReceivable(null); load();
+    setOpen(false); setEditing(null); setForm(emptyForm); setServices([]); setLinkedReceivable(null); load();
   };
 
   const openEdit = (e: any) => {
@@ -167,12 +181,29 @@ export default function Events() {
   };
 
   const handleSaveService = async () => {
-    if (!svcEventId) return;
+    // When creating a new event, queue services in memory until save
+    if (!svcEventId) {
+      setServices(prev => [...prev, { ...svcForm, _local: true, _key: `local-${Date.now()}-${Math.random()}` }]);
+      toast({ title: 'Serviço adicionado' });
+      setSvcOpen(false); setSvcForm(emptyService);
+      return;
+    }
     const payload = { ...svcForm, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
     const { error } = await supabase.from('event_services').insert(payload);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Serviço adicionado' });
     setSvcOpen(false); setSvcForm(emptyService); loadServices(svcEventId);
+  };
+
+  const handleRemoveService = async (svc: any) => {
+    if (svc._local) {
+      setServices(prev => prev.filter(s => s._key !== svc._key));
+      return;
+    }
+    const { error } = await supabase.from('event_services').delete().eq('id', svc.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Serviço removido' });
+    if (editing) loadServices(editing.id);
   };
 
   const handleUpdateReceivable = async () => {
@@ -440,31 +471,35 @@ export default function Events() {
             )}
 
             {/* Event Services section */}
-            {editing && (
-              <div className="border-t pt-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Serviços do Evento</Label>
-                  <Button size="sm" variant="outline" onClick={() => { setSvcEventId(editing.id); setSvcForm(emptyService); setSvcOpen(true); }}>
-                    <Plus className="h-3 w-3 mr-1" /> Serviço
-                  </Button>
-                </div>
-                {services.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {services.map(svc => (
-                      <div key={svc.id} className="flex items-center justify-between p-2 rounded border text-sm">
-                        <div>
-                          <Badge variant="outline" className="mr-2">{SERVICE_TYPE_LABELS[svc.service_type] || svc.service_type}</Badge>
-                          <span className="text-muted-foreground">{svc.description || ''} • Qtd: {svc.quantity} • {BILLING_MODE_LABELS[svc.billing_mode]}</span>
-                        </div>
-                        <span className="font-medium">R$ {Number(svc.expected_value || 0).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Serviços do Evento</Label>
+                <Button size="sm" variant="outline" onClick={() => { setSvcEventId(editing?.id || ''); setSvcForm(emptyService); setSvcOpen(true); }}>
+                  <Plus className="h-3 w-3 mr-1" /> Serviço
+                </Button>
               </div>
-            )}
+              {services.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
+              ) : (
+                <div className="space-y-2">
+                  {services.map((svc, idx) => (
+                    <div key={svc.id || svc._key || idx} className="flex items-center justify-between p-2 rounded border text-sm gap-2">
+                      <div className="flex-1 min-w-0">
+                        <Badge variant="outline" className="mr-2">{SERVICE_TYPE_LABELS[svc.service_type] || svc.service_type}</Badge>
+                        <span className="text-muted-foreground">{svc.description || ''} • Qtd: {svc.quantity} • {BILLING_MODE_LABELS[svc.billing_mode]}</span>
+                      </div>
+                      <span className="font-medium whitespace-nowrap">R$ {Number(svc.expected_value || 0).toFixed(2)}</span>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRemoveService(svc)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!editing && services.length > 0 && (
+                <p className="text-xs text-muted-foreground">Os serviços serão criados ao salvar o evento.</p>
+              )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
