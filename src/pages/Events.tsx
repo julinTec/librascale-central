@@ -523,7 +523,7 @@ export default function Events() {
             </div>
             <div><Label>Descrição</Label><Input value={svcForm.description} onChange={e => setSvcForm({ ...svcForm, description: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Quantidade</Label><Input type="number" min={1} value={svcForm.quantity} onChange={e => setSvcForm({ ...svcForm, quantity: Number(e.target.value) })} /></div>
+              <div><Label>Quantidade</Label><Input type="number" min={1} value={svcForm.quantity} onChange={e => { const q = Number(e.target.value); setSvcForm({ ...svcForm, quantity: q, ...(svcForm.daily_value > 0 ? { expected_value: Number((svcForm.daily_value * q).toFixed(2)) } : {}) }); }} /></div>
               <div>
                 <Label>Forma de Cobrança</Label>
                 <Select value={svcForm.billing_mode} onValueChange={v => setSvcForm({ ...svcForm, billing_mode: v })}>
