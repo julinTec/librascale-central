@@ -288,7 +288,9 @@ export default function Agenda() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os Meses</SelectItem>
-                {MONTHS.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
+                {MONTHS.filter(m => availableMonths.has(m.v)).map(m => (
+                  <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
