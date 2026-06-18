@@ -532,7 +532,29 @@ export default function Events() {
                 </Select>
               </div>
             </div>
-            <div><Label>Valor Previsto (R$)</Label><Input type="number" step="0.01" value={svcForm.expected_value} onChange={e => setSvcForm({ ...svcForm, expected_value: Number(e.target.value) })} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Valor Diária (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={svcForm.daily_value}
+                  onChange={e => {
+                    const dv = Number(e.target.value);
+                    setSvcForm({ ...svcForm, daily_value: dv, expected_value: Number((dv * Number(svcForm.quantity || 1)).toFixed(2)) });
+                  }}
+                />
+              </div>
+              <div>
+                <Label>Valor Total Pago (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={svcForm.expected_value}
+                  onChange={e => setSvcForm({ ...svcForm, expected_value: Number(e.target.value) })}
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSvcOpen(false)}>Cancelar</Button>
