@@ -181,12 +181,29 @@ export default function Events() {
   };
 
   const handleSaveService = async () => {
-    if (!svcEventId) return;
+    // When creating a new event, queue services in memory until save
+    if (!svcEventId) {
+      setServices(prev => [...prev, { ...svcForm, _local: true, _key: `local-${Date.now()}-${Math.random()}` }]);
+      toast({ title: 'Serviço adicionado' });
+      setSvcOpen(false); setSvcForm(emptyService);
+      return;
+    }
     const payload = { ...svcForm, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
     const { error } = await supabase.from('event_services').insert(payload);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Serviço adicionado' });
     setSvcOpen(false); setSvcForm(emptyService); loadServices(svcEventId);
+  };
+
+  const handleRemoveService = async (svc: any) => {
+    if (svc._local) {
+      setServices(prev => prev.filter(s => s._key !== svc._key));
+      return;
+    }
+    const { error } = await supabase.from('event_services').delete().eq('id', svc.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Serviço removido' });
+    if (editing) loadServices(editing.id);
   };
 
   const handleUpdateReceivable = async () => {
