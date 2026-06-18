@@ -10,9 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Search, Pencil, Trash2, Calendar, Clock, User, Filter, MoreVertical, ChevronDown, ChevronRight, UserPlus, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Calendar, Clock, User, Filter, MoreVertical, ChevronDown, ChevronRight, UserPlus, AlertTriangle, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, addDays, startOfWeek, endOfWeek, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -35,7 +36,11 @@ export default function Agenda() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState(emptySession);
   const [search, setSearch] = useState('');
-  const [filterEvent, setFilterEvent] = useState('all');
+  const [filterEvent, setFilterEvent] = useState('all'); // normalized event name or 'all'
+  const [filterYear, setFilterYear] = useState('all');
+  const [filterMonth, setFilterMonth] = useState('all');
+  const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
+  const [eventSearch, setEventSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, any[]>>({});
   const [assignOpen, setAssignOpen] = useState(false);
@@ -124,11 +129,49 @@ export default function Agenda() {
     loadAssignments(assignSessionId); loadAllAssignments();
   };
 
+  // Normalize event name (trim + collapse spaces + lowercase) to dedupe duplicates
+  const normalizeName = (n: string) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+  const uniqueEvents = useMemo(() => {
+    const map = new Map<string, string>(); // norm -> display name (first occurrence preserved)
+    events.forEach(e => {
+      const norm = normalizeName(e.event_name);
+      if (norm && !map.has(norm)) map.set(norm, (e.event_name || '').trim().replace(/\s+/g, ' '));
+    });
+    return Array.from(map.entries())
+      .map(([norm, name]) => ({ norm, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [events]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    sessions.forEach(s => { if (s.session_date) years.add(s.session_date.slice(0, 4)); });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  }, [sessions]);
+
+  const MONTHS = [
+    { v: '01', l: 'Janeiro' }, { v: '02', l: 'Fevereiro' }, { v: '03', l: 'Março' },
+    { v: '04', l: 'Abril' }, { v: '05', l: 'Maio' }, { v: '06', l: 'Junho' },
+    { v: '07', l: 'Julho' }, { v: '08', l: 'Agosto' }, { v: '09', l: 'Setembro' },
+    { v: '10', l: 'Outubro' }, { v: '11', l: 'Novembro' }, { v: '12', l: 'Dezembro' },
+  ];
+
+  const selectedEventLabel = filterEvent === 'all'
+    ? 'Todos os Eventos'
+    : uniqueEvents.find(u => u.norm === filterEvent)?.name || 'Todos os Eventos';
+
   const filtered = sessions.filter(s => {
-    const matchSearch = (s.title || '').toLowerCase().includes(search.toLowerCase()) || (s.events?.event_name || '').toLowerCase().includes(search.toLowerCase());
-    const matchEvent = filterEvent === 'all' || s.event_id === filterEvent;
-    return matchSearch && matchEvent;
+    const evName = s.events?.event_name || '';
+    const matchSearch = (s.title || '').toLowerCase().includes(search.toLowerCase()) || evName.toLowerCase().includes(search.toLowerCase());
+    const matchEvent = filterEvent === 'all' || normalizeName(evName) === filterEvent;
+    const matchYear = filterYear === 'all' || (s.session_date || '').slice(0, 4) === filterYear;
+    const matchMonth = filterMonth === 'all' || (s.session_date || '').slice(5, 7) === filterMonth;
+    return matchSearch && matchEvent && matchYear && matchMonth;
   });
+
+  const filteredEventOptions = uniqueEvents.filter(u =>
+    !eventSearch || u.name.toLowerCase().includes(eventSearch.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10">
@@ -144,18 +187,75 @@ export default function Agenda() {
 
       <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-0">
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="relative flex-1 w-full max-w-md">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <div className="relative flex-1 min-w-[220px] max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Buscar por evento ou título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background/50 focus:bg-background transition-all" />
             </div>
-            <Select value={filterEvent} onValueChange={setFilterEvent}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-background/50">
-                <SelectValue placeholder="Filtrar Evento" />
+
+            <Popover open={eventPopoverOpen} onOpenChange={setEventPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full sm:w-[240px] justify-between bg-background/50 font-normal">
+                  <span className="truncate">{selectedEventLabel}</span>
+                  <ChevronDown className="w-4 h-4 opacity-50 shrink-0 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0" align="start">
+                <div className="p-2 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      placeholder="Buscar evento..."
+                      value={eventSearch}
+                      onChange={(e) => setEventSearch(e.target.value)}
+                      className="pl-7 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto p-1">
+                  <button
+                    type="button"
+                    onClick={() => { setFilterEvent('all'); setEventPopoverOpen(false); setEventSearch(''); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                  >
+                    <Check className={cn('w-4 h-4', filterEvent === 'all' ? 'opacity-100' : 'opacity-0')} />
+                    Todos os Eventos
+                  </button>
+                  {filteredEventOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum evento encontrado</p>
+                  ) : filteredEventOptions.map(opt => (
+                    <button
+                      key={opt.norm}
+                      type="button"
+                      onClick={() => { setFilterEvent(opt.norm); setEventPopoverOpen(false); setEventSearch(''); }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                    >
+                      <Check className={cn('w-4 h-4 shrink-0', filterEvent === opt.norm ? 'opacity-100' : 'opacity-0')} />
+                      <span className="truncate">{opt.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="w-full sm:w-[130px] bg-background/50">
+                <SelectValue placeholder="Ano" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Eventos</SelectItem>
-                {events.map(e => <SelectItem key={e.id} value={e.id}>{e.event_name}</SelectItem>)}
+                <SelectItem value="all">Todos os Anos</SelectItem>
+                {availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterMonth} onValueChange={setFilterMonth}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-background/50">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Meses</SelectItem>
+                {MONTHS.map(m => <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
