@@ -188,7 +188,8 @@ export default function Events() {
       setSvcOpen(false); setSvcForm(emptyService);
       return;
     }
-    const payload = { ...svcForm, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
+    const { daily_value, ...svcRest } = svcForm as any;
+    const payload = { ...svcRest, event_id: svcEventId, quantity: Number(svcForm.quantity), expected_value: Number(svcForm.expected_value), service_type: svcForm.service_type as any, billing_mode: svcForm.billing_mode as any };
     const { error } = await supabase.from('event_services').insert(payload);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Serviço adicionado' });
