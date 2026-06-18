@@ -31,7 +31,7 @@ const emptyForm = {
   billing_type: 'unico' as string,
 };
 
-const emptyService = { service_type: 'interprete_libras' as string, description: '', quantity: 1, billing_mode: 'valor_fechado' as string, expected_value: 0, notes: '' };
+const emptyService = { service_type: 'interprete_libras' as string, description: '', quantity: 1, billing_mode: 'valor_fechado' as string, daily_value: 0, expected_value: 0, notes: '' };
 
 export default function Events() {
   const { user } = useAuth();
