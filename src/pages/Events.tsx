@@ -145,10 +145,24 @@ export default function Events() {
       const { data, error } = await supabase.from('events').insert({ ...payload, created_by: user?.id }).select('id').single();
       if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
       savedId = data?.id;
+      // Persist pending services collected before the event existed
+      if (savedId && services.length > 0) {
+        const rows = services.map(s => ({
+          event_id: savedId,
+          service_type: s.service_type,
+          description: s.description || null,
+          quantity: Number(s.quantity) || 1,
+          billing_mode: s.billing_mode,
+          expected_value: Number(s.expected_value) || 0,
+          notes: s.notes || null,
+        }));
+        const { error: svcErr } = await supabase.from('event_services').insert(rows);
+        if (svcErr) toast({ title: 'Erro ao salvar serviços', description: svcErr.message, variant: 'destructive' });
+      }
     }
     if (savedId) await upsertReceivable(savedId, form);
     toast({ title: editing ? 'Evento atualizado' : 'Evento criado', description: Number(form.contract_value) > 0 ? 'Receita vinculada atualizada no Financeiro.' : undefined });
-    setOpen(false); setEditing(null); setForm(emptyForm); setLinkedReceivable(null); load();
+    setOpen(false); setEditing(null); setForm(emptyForm); setServices([]); setLinkedReceivable(null); load();
   };
 
   const openEdit = (e: any) => {
