@@ -31,7 +31,7 @@ export default function Login() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate('/dashboard');
+        navigate('/inicio');
       }
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
