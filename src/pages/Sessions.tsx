@@ -39,6 +39,7 @@ export default function Agenda() {
   const [filterEvent, setFilterEvent] = useState('all'); // normalized event name or 'all'
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
+  const [filterInterpreter, setFilterInterpreter] = useState('all');
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
   const [eventSearch, setEventSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
