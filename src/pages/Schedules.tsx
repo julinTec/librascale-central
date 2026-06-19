@@ -180,6 +180,13 @@ export default function Schedules() {
             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
+          <SelectTrigger className="w-52"><SelectValue placeholder="Profissional" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os profissionais</SelectItem>
+            {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2">
           <Label className="text-sm whitespace-nowrap">De:</Label>
           <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
