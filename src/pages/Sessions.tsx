@@ -195,6 +195,10 @@ export default function Agenda() {
     ? 'Todos os Eventos'
     : uniqueEvents.find(u => u.norm === filterEvent)?.name || 'Todos os Eventos';
 
+  const selectedInterpreterLabel = filterInterpreter === 'all'
+    ? 'Todos os Profissionais'
+    : interpreters.find(i => i.id === filterInterpreter)?.full_name || 'Todos os Profissionais';
+
   const filtered = sessions.filter(s => {
     const evName = s.events?.event_name || '';
     const matchSearch = (s.title || '').toLowerCase().includes(search.toLowerCase()) || evName.toLowerCase().includes(search.toLowerCase());
@@ -207,6 +211,10 @@ export default function Agenda() {
 
   const filteredEventOptions = uniqueEvents.filter(u =>
     !eventSearch || u.name.toLowerCase().includes(eventSearch.toLowerCase())
+  );
+
+  const filteredInterpreterOptions = interpreters.filter(i =>
+    !interpreterSearch || i.full_name.toLowerCase().includes(interpreterSearch.toLowerCase())
   );
 
   return (
