@@ -135,6 +135,7 @@ export default function Schedules() {
   const filtered = items.filter(s => {
     if (filterStatus !== 'all' && s.status !== filterStatus) return false;
     if (filterClient !== 'all' && s.client_id !== filterClient) return false;
+    if (filterInterpreter !== 'all' && s.interpreter_id !== filterInterpreter) return false;
     if (search && !(s.title || '').toLowerCase().includes(search.toLowerCase())) return false;
     if (filterDateFrom && s.activity_date < filterDateFrom) return false;
     if (filterDateTo && s.activity_date > filterDateTo) return false;
