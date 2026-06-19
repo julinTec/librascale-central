@@ -33,6 +33,7 @@ export default function Schedules() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
+  const [filterInterpreter, setFilterInterpreter] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [view, setView] = useState<'list' | 'calendar'>('list');
@@ -134,6 +135,7 @@ export default function Schedules() {
   const filtered = items.filter(s => {
     if (filterStatus !== 'all' && s.status !== filterStatus) return false;
     if (filterClient !== 'all' && s.client_id !== filterClient) return false;
+    if (filterInterpreter !== 'all' && s.interpreter_id !== filterInterpreter) return false;
     if (search && !(s.title || '').toLowerCase().includes(search.toLowerCase())) return false;
     if (filterDateFrom && s.activity_date < filterDateFrom) return false;
     if (filterDateTo && s.activity_date > filterDateTo) return false;
@@ -176,6 +178,13 @@ export default function Schedules() {
           <SelectContent>
             <SelectItem value="all">Todos os clientes</SelectItem>
             {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
+          <SelectTrigger className="w-52"><SelectValue placeholder="Profissional" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os profissionais</SelectItem>
+            {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
           </SelectContent>
         </Select>
         <div className="flex items-center gap-2">
