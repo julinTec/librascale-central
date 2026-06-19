@@ -295,6 +295,18 @@ export default function Agenda() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-background/50">
+                <SelectValue placeholder="Profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Profissionais</SelectItem>
+                {interpreters.map(i => (
+                  <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
