@@ -40,8 +40,8 @@ export default function Agenda() {
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
   const [filterInterpreter, setFilterInterpreter] = useState('all');
-  const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
-  const [eventSearch, setEventSearch] = useState('');
+  const [interpreterPopoverOpen, setInterpreterPopoverOpen] = useState(false);
+  const [interpreterSearch, setInterpreterSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, any[]>>({});
   const [assignOpen, setAssignOpen] = useState(false);
