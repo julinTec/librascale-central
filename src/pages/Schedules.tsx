@@ -161,39 +161,43 @@ export default function Schedules() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="relative max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-3">
+          <div className="relative max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar título..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {Object.entries(SCHEDULE_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {Object.entries(SCHEDULE_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterClient} onValueChange={setFilterClient}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Cliente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Profissional" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os profissionais</SelectItem>
-            {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">De:</Label>
-          <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
-        </div>
-        <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">Até:</Label>
-          <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+        <div className="flex flex-wrap gap-3">
+          <Select value={filterClient} onValueChange={setFilterClient}>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
+            <SelectTrigger className="w-52"><SelectValue placeholder="Profissional" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os profissionais</SelectItem>
+              {interpreters.map(i => <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">De:</Label>
+            <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Até:</Label>
+            <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+          </div>
         </div>
       </div>
 
