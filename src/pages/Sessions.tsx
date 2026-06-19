@@ -39,6 +39,7 @@ export default function Agenda() {
   const [filterEvent, setFilterEvent] = useState('all'); // normalized event name or 'all'
   const [filterYear, setFilterYear] = useState('all');
   const [filterMonth, setFilterMonth] = useState('all');
+  const [filterInterpreter, setFilterInterpreter] = useState('all');
   const [eventPopoverOpen, setEventPopoverOpen] = useState(false);
   const [eventSearch, setEventSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -198,7 +199,8 @@ export default function Agenda() {
     const matchEvent = filterEvent === 'all' || normalizeName(evName) === filterEvent;
     const matchYear = filterYear === 'all' || (s.session_date || '').slice(0, 4) === filterYear;
     const matchMonth = filterMonth === 'all' || (s.session_date || '').slice(5, 7) === filterMonth;
-    return matchSearch && matchEvent && matchYear && matchMonth;
+    const matchInterpreter = filterInterpreter === 'all' || (allAssignmentsMap[s.id] || []).some(a => a.interpreter_id === filterInterpreter);
+    return matchSearch && matchEvent && matchYear && matchMonth && matchInterpreter;
   });
 
   const filteredEventOptions = uniqueEvents.filter(u =>
@@ -290,6 +292,18 @@ export default function Agenda() {
                 <SelectItem value="all">Todos os Meses</SelectItem>
                 {MONTHS.filter(m => availableMonths.has(m.v)).map(m => (
                   <SelectItem key={m.v} value={m.v}>{m.l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-background/50">
+                <SelectValue placeholder="Profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Profissionais</SelectItem>
+                {interpreters.map(i => (
+                  <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
