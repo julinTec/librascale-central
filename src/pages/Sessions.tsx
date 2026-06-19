@@ -199,7 +199,8 @@ export default function Agenda() {
     const matchEvent = filterEvent === 'all' || normalizeName(evName) === filterEvent;
     const matchYear = filterYear === 'all' || (s.session_date || '').slice(0, 4) === filterYear;
     const matchMonth = filterMonth === 'all' || (s.session_date || '').slice(5, 7) === filterMonth;
-    return matchSearch && matchEvent && matchYear && matchMonth;
+    const matchInterpreter = filterInterpreter === 'all' || (allAssignmentsMap[s.id] || []).some(a => a.interpreter_id === filterInterpreter);
+    return matchSearch && matchEvent && matchYear && matchMonth && matchInterpreter;
   });
 
   const filteredEventOptions = uniqueEvents.filter(u =>
