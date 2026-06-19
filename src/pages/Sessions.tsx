@@ -306,17 +306,51 @@ export default function Agenda() {
               </SelectContent>
             </Select>
 
-            <Select value={filterInterpreter} onValueChange={setFilterInterpreter}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-background/50">
-                <SelectValue placeholder="Profissional" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Profissionais</SelectItem>
-                {interpreters.map(i => (
-                  <SelectItem key={i.id} value={i.id}>{i.full_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={interpreterPopoverOpen} onOpenChange={setInterpreterPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full sm:w-[240px] justify-between bg-background/50 font-normal">
+                  <span className="truncate">{selectedInterpreterLabel}</span>
+                  <ChevronDown className="w-4 h-4 opacity-50 shrink-0 ml-2" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0" align="start">
+                <div className="p-2 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      autoFocus
+                      placeholder="Buscar profissional..."
+                      value={interpreterSearch}
+                      onChange={(e) => setInterpreterSearch(e.target.value)}
+                      className="pl-7 h-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="max-h-64 overflow-y-auto p-1">
+                  <button
+                    type="button"
+                    onClick={() => { setFilterInterpreter('all'); setInterpreterPopoverOpen(false); setInterpreterSearch(''); }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                  >
+                    <Check className={cn('w-4 h-4', filterInterpreter === 'all' ? 'opacity-100' : 'opacity-0')} />
+                    Todos os Profissionais
+                  </button>
+                  {filteredInterpreterOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Nenhum profissional encontrado</p>
+                  ) : filteredInterpreterOptions.map(i => (
+                    <button
+                      key={i.id}
+                      type="button"
+                      onClick={() => { setFilterInterpreter(i.id); setInterpreterPopoverOpen(false); setInterpreterSearch(''); }}
+                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent text-left"
+                    >
+                      <Check className={cn('w-4 h-4 shrink-0', filterInterpreter === i.id ? 'opacity-100' : 'opacity-0')} />
+                      <span className="truncate flex-1">{i.full_name}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
