@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search } from 'lucide-react';
-import { format } from 'date-fns';
+import { safeFormat } from '@/lib/date-utils';
 
 export default function Audit() {
   const [logs, setLogs] = useState<any[]>([]);
