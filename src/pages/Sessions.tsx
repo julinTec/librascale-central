@@ -378,7 +378,7 @@ export default function Agenda() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-bold text-foreground">{s.session_date ? format(new Date(s.session_date + 'T12:00:00'), 'dd/MM/yyyy') : '-'}</span>
+                            <span className="font-bold text-foreground">{(() => { if (!s.session_date) return '-'; const d = new Date(s.session_date + 'T12:00:00'); return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy'); })()}</span>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <Clock className="w-3 h-3" /> {s.start_time?.slice(0, 5)} - {s.end_time?.slice(0, 5)}
                             </span>
