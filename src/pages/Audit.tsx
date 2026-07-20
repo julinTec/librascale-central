@@ -52,7 +52,7 @@ export default function Audit() {
             <TableBody>
               {filtered.map(l => (
                 <TableRow key={l.id}>
-                  <TableCell className="text-sm">{format(new Date(l.changed_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                  <TableCell className="text-sm">{safeFormat(l.changed_at, 'dd/MM/yyyy HH:mm')}</TableCell>
                   <TableCell className="text-sm font-medium">{l.schedules?.title || '-'}</TableCell>
                   <TableCell className="text-sm">{l.field_name}</TableCell>
                   <TableCell className="text-sm text-destructive">{l.old_value || '-'}</TableCell>
