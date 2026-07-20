@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
 import { INCIDENT_TYPE_LABELS, INCIDENT_STATUS_LABELS } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { safeFormat } from '@/lib/date-utils';
 
 const defaultForm = {
   schedule_id: '', client_id: '', incident_type: 'atraso_cliente' as string,
@@ -166,7 +166,7 @@ export default function Incidents() {
             <TableBody>
               {filtered.map(i => (
                 <TableRow key={i.id}>
-                  <TableCell className="text-sm">{format(new Date(i.occurred_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                  <TableCell className="text-sm">{safeFormat(i.occurred_at, 'dd/MM/yyyy HH:mm')}</TableCell>
                   <TableCell><Badge variant="outline">{INCIDENT_TYPE_LABELS[i.incident_type]}</Badge></TableCell>
                   <TableCell className="text-sm">{i.clients?.name || '-'}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate">{i.description}</TableCell>
