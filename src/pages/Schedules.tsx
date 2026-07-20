@@ -142,7 +142,10 @@ export default function Schedules() {
     return true;
   });
 
-  const calendarDates = items.map(s => new Date(s.activity_date + 'T12:00:00'));
+  const calendarDates = items
+    .filter(s => !!s.activity_date)
+    .map(s => new Date(s.activity_date + 'T12:00:00'))
+    .filter(d => !isNaN(d.getTime()));
 
   return (
     <div className="space-y-6">

@@ -577,7 +577,7 @@ export default function Quotes() {
                         </TableCell>
                         <TableCell>{i.event_name || '—'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {i.submitted_at ? format(new Date(i.submitted_at), 'dd/MM/yy HH:mm') : `link válido até ${format(new Date(i.expires_at), 'dd/MM/yy')}`}
+                          {i.submitted_at ? format(new Date(i.submitted_at), 'dd/MM/yy HH:mm') : (i.expires_at ? `link válido até ${format(new Date(i.expires_at), 'dd/MM/yy')}` : '—')}
                         </TableCell>
                         <TableCell><Badge variant="outline">{statusLabel}</Badge></TableCell>
                         <TableCell>
